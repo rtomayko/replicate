@@ -129,7 +129,10 @@ module GitHub
 
       def dump_repository(repository)
         dump_active_record_object repository
+        dump repository.commit_comments
+        dump repository.languages
         dump repository.issues
+        dump repository.downloads
       end
 
       def dump_user(user)
@@ -139,6 +142,8 @@ module GitHub
 
       def dump_issue(issue)
         dump_active_record_object issue
+        dump issue.labels
+        dump issue.events
         dump issue.comments
       end
 
