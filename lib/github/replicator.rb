@@ -149,6 +149,7 @@ module GitHub
         fail "not ready for production" if RAILS_ENV == 'production'
         @keymap = {}
         @warned = {}
+        @foreign_key_map = {}
       end
 
       # Read replicant tuples from the given IO object and load into the
@@ -176,6 +177,7 @@ module GitHub
         model = Object::const_get(type)
         instance = load_object model, attributes
         primary_key = nil
+        foreign_key_map = model_foreign_key_map(model)
 
         # write each attribute separately, converting foreign key values to
         # their local system values.
@@ -183,22 +185,21 @@ module GitHub
           if key == model.primary_key
             primary_key = value
             next
-          elsif key =~ /^(.*)_id$/
-            if value && reflection = model.reflect_on_association($1.to_sym)
-              dependent_model = Object::const_get(reflection.class_name)
-              if record = find_dependent_object(dependent_model, value)
-                instance.write_attribute key, record.id
-              else
-                warn "error: #{model} referencing #{dependent_model}[#{value}] " \
-                     "not found in keymap"
-              end
-            elsif value
-              if !@warned["#{model}:#{key}"]
-                warn "warn: association not found for #{model}.#{key} attribute."
-                @warned["#{model}:#{key}"] = true
-              end
-              instance.write_attribute key, value
+          elsif value.nil?
+            instance.write_attribute key, value
+          elsif dependent_model = foreign_key_map[key]
+            if record = find_dependent_object(dependent_model, value)
+              instance.write_attribute key, record.id
+            else
+              warn "warn: #{model} referencing #{dependent_model}[#{value}] " \
+                   "not found in keymap"
             end
+          elsif key =~ /^(.*)_id$/
+            if !@warned["#{model}:#{key}"]
+              warn "warn: #{model}.#{key} looks like a foreign key but has no association."
+              @warned["#{model}:#{key}"] = true
+            end
+            instance.write_attribute key, value
           else
             instance.write_attribute key, value
           end
@@ -209,6 +210,23 @@ module GitHub
         instance.save false
         register_dependent_object instance, primary_key
         instance
+      end
+
+      # Load a mapping of foreign key column names to association model classes.
+      #
+      # model - The AR class.
+      #
+      # Returns a Hash of { foreign_key => model_class } items.
+      def model_foreign_key_map(model)
+        @foreign_key_map[model] ||=
+          begin
+            map = {}
+            model.reflect_on_all_associations(:belongs_to).each do |reflection|
+              foreign_key = reflection.options[:foreign_key] || "#{reflection.name}_id"
+              map[foreign_key.to_s] = reflection.klass
+            end
+            map
+          end
       end
 
       # Find the local AR object instance for the given model class and dump
