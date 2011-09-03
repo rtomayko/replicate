@@ -175,13 +175,15 @@ module GitHub
       # database within a single transaction.
       def read(io)
         ActiveRecord::Base.transaction do
-          while object = Marshal.load(io)
-            type, id, attrs = object
-            record = load(type, id, attrs)
-            yield record if block_given?
+          begin
+            while object = Marshal.load(io)
+              type, id, attrs = object
+              record = load(type, id, attrs)
+              yield record if block_given?
+            end
+          rescue EOFError
           end
         end
-      rescue EOFError
       end
 
       # Load an individual record into the database.
