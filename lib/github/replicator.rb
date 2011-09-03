@@ -22,9 +22,11 @@ module GitHub
     #     >> replicator.dump_repository User / :defunkt / :github
     #
     class Dumper
-      def initialize(&write)
+      def initialize(io=nil, &write)
+        write ||= lambda { |*replicant| Marshal.dump(replicant, io) } if io
+        write ||= lambda { |*replicant| @objects << replicant }
         @objects = []
-        @write = write || lambda { |type,id,att| @objects << [type,id,att] }
+        @write = write
         @memo = {}
       end
 
