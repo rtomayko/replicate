@@ -286,6 +286,10 @@ module GitHub
         end
         Repository.new
       end
+
+      def load_language_name(attrs)
+        LanguageName.find_by_name(attrs['name'])
+      end
     end
   end
 end
