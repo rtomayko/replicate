@@ -148,6 +148,7 @@ module GitHub
       def initialize
         fail "not ready for production" if RAILS_ENV == 'production'
         @keymap = {}
+        @warned = {}
       end
 
       # Read replicant tuples from the given IO object and load into the
@@ -192,7 +193,10 @@ module GitHub
                      "not found in keymap"
               end
             elsif value
-              warn "warn: association not found for #{model}.#{key} attribute. nilifying."
+              if !@warned["#{model}:#{key}"]
+                warn "warn: association not found for #{model}.#{key} attribute."
+                @warned["#{model}:#{key}"] = true
+              end
               instance.write_attribute key, value
             end
           else
