@@ -67,7 +67,7 @@ module GitHub
       #
       # Returns nothing.
       def dump(*objects)
-        objects = objects[0] if objects.size == 1 && objects[0].is_a?(Array)
+        objects = objects[0] if objects.size == 1 && objects[0].respond_to?(:to_ary)
         objects.each do |object|
           next if object.nil?
           next if dumped?(object)
@@ -112,7 +112,15 @@ module GitHub
         model = object.class
         model.reflect_on_all_associations(association_type).each do |reflection|
           dependent = object.send reflection.name
-          dump dependent
+          case dependent
+          when ActiveRecord::Base, Array
+            dump dependent
+          when nil
+            next
+          else
+            warn "warn: #{model}##{reflection.name} #{association_type} association " \
+                 "unexpectedly returned a #{dependent.class}. skipping."
+          end
         end
       end
 
