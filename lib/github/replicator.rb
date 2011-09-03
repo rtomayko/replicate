@@ -1,13 +1,10 @@
-require 'marshal'
-
 module GitHub
   module Replicator
     class Dumper
-      def initialize(repository, &write)
+      def initialize(&write)
         @objects = []
-        @write = write || lambda { |type,id,att| @objects << [type, id, att] }
+        @write = write || lambda { |type,id,att| @objects << [type,id,att] }
         @memo = {}
-        dump_repository repository
       end
 
       def write(type, id, attributes)
@@ -52,18 +49,9 @@ module GitHub
         @objects
       end
 
-      def to_json
-        GitHub::JSON::encode(@objects)
-      end
-
       def to_s
         @objects.inspect
       end
-
-      def to_h
-        @objects
-      end
-
     end
 
     class Loader
