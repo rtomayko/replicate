@@ -102,9 +102,9 @@ module GitHub
       #
       # Returns nothing.
       def dump_active_record_object(object)
-        dump_associated_objects object, :belongs_to
+        dump_associated_with object, :belongs_to
         dump_object object
-        dump_associated_objects object, :has_one
+        dump_associated_with object, :has_one
       end
 
       # Dump all object associations of a given type.
@@ -113,7 +113,7 @@ module GitHub
       # association_type - :has_one, :belongs_to, :has_many
       #
       # Returns nothing.
-      def dump_associated_objects(object, association_type)
+      def dump_associated_with(object, association_type)
         model = object.class
         model.reflect_on_all_associations(association_type).each do |reflection|
           dependent = object.send reflection.name
@@ -129,32 +129,48 @@ module GitHub
         end
       end
 
+      # Dump objects associated with an AR object through an association name.
+      #
+      # object      - AR object instance.
+      # association - Name of the association whose objects should be dumped.
+      #
+      # Returns nothing.
+      def dump_associated(object, association)
+        model = object.class
+        reflection = model.reflect_on_association(association)
+        if reflection.macro == :has_and_belongs_to_many
+          warn "warn: #{model}##{reflection.name} - habtm not supported yet"
+        end
+        objects = object.send reflection.name
+        dump objects
+      end
+
       ##
       # Dumpspecs
 
       def dump_repository(repository)
         dump_active_record_object repository
-        dump repository.commit_comments
-        dump repository.languages
-        dump repository.issues
-        dump repository.downloads
+        dump_associated repository, :commit_comments
+        dump_associated repository, :languages
+        dump_associated repository, :issues
+        dump_associated repository, :downloads
       end
 
       def dump_user(user)
         dump_active_record_object user
-        dump user.emails
+        dump_associated user, :emails
       end
 
       def dump_issue(issue)
         dump_active_record_object issue
-        dump issue.labels
-        dump issue.events
-        dump issue.comments
+        # dump_associated issue, :labels
+        dump_associated issue, :events
+        dump_associated issue, :comments
       end
 
       def dump_pull_request(pull)
         dump_active_record_object pull
-        dump pull.review_comments
+        dump_associated pull, :review_comments
       end
     end
 
