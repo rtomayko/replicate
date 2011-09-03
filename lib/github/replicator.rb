@@ -22,9 +22,15 @@ module GitHub
     #     >> replicator.dump_repository User / :defunkt / :github
     #
     class Dumper
+      # Create a new Dumper.
+      #
+      # io     - IO object to write marshalled replicant objects to. When
+      #          not given, objects are written to an array available at #to_a.
+      # write  - Block called when an object needs to be written. Use this for
+      #          complete control over how objects are serialized.
       def initialize(io=nil, &write)
-        write ||= lambda { |*replicant| Marshal.dump(replicant, io) } if io
         write ||= lambda { |*replicant| @objects << replicant }
+        write ||= lambda { |*replicant| Marshal.dump(replicant, io) } if io
         @objects = []
         @write = write
         @memo = {}
@@ -96,6 +102,12 @@ module GitHub
         dump_associated_objects object, :has_one
       end
 
+      # Dump all object associations of a given type.
+      #
+      # object - AR object instance.
+      # association_type - :has_one, :belongs_to, :has_many
+      #
+      # Returns nothing.
       def dump_associated_objects(object, association_type)
         model = object.class
         model.reflect_on_all_associations(association_type).each do |reflection|
