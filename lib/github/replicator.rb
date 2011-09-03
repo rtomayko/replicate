@@ -70,7 +70,7 @@ module GitHub
           if respond_to?(meth)
             send meth, object
           else
-            dump_object object
+            dump_active_record_object object
           end
         end
       end
@@ -84,53 +84,47 @@ module GitHub
         write object.class.name, object.id, object.attributes
       end
 
+      # Dump all objects the given object depends on via belongs_to association,
+      # then dump the object itself.
+      #
+      # object - An ActiveRecord object instance.
+      #
+      # Returns nothing.
+      def dump_active_record_object(object)
+        dump_associated_objects object, :belongs_to
+        dump_object object
+        dump_associated_objects object, :has_one
+      end
+
+      def dump_associated_objects(object, association_type)
+        model = object.class
+        model.reflect_on_all_associations(association_type).each do |reflection|
+          dependent = object.send reflection.name
+          dump dependent
+        end
+      end
+
       ##
       # Dumpspecs
 
       def dump_repository(repository)
-        dump repository.owner
-        dump repository.plan_owner
-        dump_object repository
+        dump_active_record_object repository
         dump repository.issues
       end
 
       def dump_user(user)
-        dump_object user
-        dump user.profile
+        dump_active_record_object user
         dump user.emails
       end
 
       def dump_issue(issue)
-        dump issue.repository
-        dump issue.user
-        dump issue.assignee
-        dump issue.milestone
-        dump issue.pull_request
-        dump_object issue
+        dump_active_record_object issue
         dump issue.comments
       end
 
-      def dump_issue_comment(comment)
-        dump comment.user
-        dump comment.repository
-        dump_object comment
-      end
-
       def dump_pull_request(pull)
-        dump pull.repository
-        dump pull.head_repository
-        dump pull.base_repository
-        dump pull.user
-        dump pull.base_user
-        dump pull.head_user
-        dump_object pull
+        dump_active_record_object pull
         dump pull.review_comments
-      end
-
-      def dump_pull_request_review_comment(comment)
-        dump comment.user
-        dump comment.pull_request
-        dump_object comment
       end
     end
 
