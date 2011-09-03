@@ -29,9 +29,8 @@ module GitHub
       # write  - Block called when an object needs to be written. Use this for
       #          complete control over how objects are serialized.
       def initialize(io=nil, &write)
-        write ||= lambda { |*replicant| @objects << replicant }
-        write ||= lambda { |*replicant| Marshal.dump(replicant, io) } if io
         @objects = []
+        @io = io
         @write = write
         @memo = {}
       end
@@ -50,13 +49,19 @@ module GitHub
       # Call the write method given in the initializer or write to the internal
       # objects array when no write method was given.
       #
-      # type       - The model class name as a String.
-      # id         - The record's id. Usually an integer.
-      # attributes - All model attributes.
+      # replicant is a three tuple:
+      #   type       - The model class name as a String.
+      #   id         - The record's id. Usually an integer.
+      #   attributes - All model attributes.
       #
       # Returns nothing.
-      def write(type, id, attributes)
-        @write.call(type, id, attributes)
+      def write(replicant, object)
+        @write.call(replicant, object) if @write
+        if @io
+          Marshal.dump(replicant, @io)
+        elsif @write.nil?
+          @objects << replicant
+        end
       end
 
       # Dump one or more objects to the internal array or provided dump
@@ -87,7 +92,7 @@ module GitHub
       def dump_object(object)
         return if dumped?(object)
         @memo["#{object.class}:#{object.id}"] = object
-        write object.class.name, object.id, object.attributes
+        write [object.class.name, object.id, object.attributes], object
       end
 
       # Dump all objects the given object depends on via belongs_to association,
