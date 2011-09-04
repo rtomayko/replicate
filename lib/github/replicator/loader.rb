@@ -70,29 +70,6 @@ module GitHub
           c = c.superclass
         end
       end
-
-      ##
-      # Loadspecs
-
-      # Use existing users when the login is available.
-      def load_user(attrs)
-        User.find_by_login(attrs['login'])
-      end
-
-      # Delete existing repositories and create new ones. Nice because we don't
-      # have to worry about updating existing issues, comments, etc.
-      def load_repository(attrs)
-        owner = find_dependent_object(User, attrs['owner_id'])
-        if repo = Repository.find_by_name_with_owner("#{owner.login}/#{attrs['name']}")
-          warn "warn: deleting existing repository: #{repo.name_with_owner} (#{repo.id})"
-          repo.destroy
-        end
-        Repository.new
-      end
-
-      def load_language_name(attrs)
-        LanguageName.find_by_name(attrs['name'])
-      end
     end
   end
 end

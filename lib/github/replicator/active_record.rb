@@ -86,7 +86,10 @@ module GitHub
       #
       # Returns the ActiveRecord object instance for the new record.
       def load_replicant(type, id, attributes)
-        instance = new
+        create_or_update_replicant new, attributes
+      end
+
+      def create_or_update_replicant(instance, attributes)
         def instance.callback(*args);end # Rails 2.x hack to disable callbacks.
 
         attributes.each do |key, value|
