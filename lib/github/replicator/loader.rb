@@ -42,104 +42,33 @@ module GitHub
       #
       # Returns the ActiveRecord object instance for the new record.
       def load(type, id, attributes)
-        model = Object::const_get(type)
-        instance = load_object model, attributes
-        primary_key = nil
-        foreign_key_map = model_foreign_key_map(model)
+        model_class = Object::const_get(type)
+        translate_ids attributes
+        new_id, instance = model_class.load_replicant(type, id, attributes)
+        register_id instance, type, id, new_id
+        instance
+      end
 
-        # write each attribute separately, converting foreign key values to
-        # their local system values.
+      def translate_ids(attributes)
         attributes.each do |key, value|
-          if key == model.primary_key
-            primary_key = value
-            next
-          elsif value.nil?
-            instance.write_attribute key, value
-          elsif dependent_model = foreign_key_map[key]
-            if record = find_dependent_object(dependent_model, value)
-              instance.write_attribute key, record.id
+          if value.is_a?(Array) && value.size == 2 && value[0] == :id
+            remote_id = value[1]
+            if local_id = @keymap[remote_id]
+              attributes[key] = local_id
             else
-              warn "warn: #{model} referencing #{dependent_model}[#{value}] " \
-                   "not found in keymap"
+              warn "error: #{remote_id} missing from keymap"
             end
-          elsif key =~ /^(.*)_id$/
-            if !@warned["#{model}:#{key}"]
-              warn "warn: #{model}.#{key} looks like a foreign key but has no association."
-              @warned["#{model}:#{key}"] = true
-            end
-            instance.write_attribute key, value
-          else
-            instance.write_attribute key, value
           end
         end
-
-        # write to the database without validations and callbacks, register in
-        # the keymap and return the AR object
-        instance.save false
-        register_dependent_object instance, primary_key
-        instance
       end
 
-      # Load a mapping of foreign key column names to association model classes.
-      #
-      # model - The AR class.
-      #
-      # Returns a Hash of { foreign_key => model_class } items.
-      def model_foreign_key_map(model)
-        @foreign_key_map[model] ||=
-          begin
-            map = {}
-            model.reflect_on_all_associations(:belongs_to).each do |reflection|
-              foreign_key = reflection.options[:foreign_key] || "#{reflection.name}_id"
-              map[foreign_key.to_s] = reflection.klass
-            end
-            map
-          end
-      end
-
-      # Find the local AR object instance for the given model class and dump
-      # system primary key.
-      #
-      # model - An ActiveRecord subclass.
-      # id    - The dump system primary key id.
-      #
-      # Returns the AR object instance if found, nil otherwise.
-      def find_dependent_object(model, id)
-        @keymap["#{model}:#{id}"]
-      end
-
-      # Register a newly created or updated AR object in the keymap.
-      #
-      # object - An ActiveRecord object instance.
-      # id     - The dump system primary key id.
-      #
-      # Returns object.
-      def register_dependent_object(object, id)
-        model = object.class
-        while model != ActiveRecord::Base && model != Object
-          @keymap["#{model}:#{id}"] = object
-          model = model.superclass
+      def register_id(object, type, remote_id, local_id)
+        @keymap["#{type}:#{remote_id}"] = local_id
+        c = object.class
+        while c != Object && c != ActiveRecord::Base
+          @keymap["#{c.name}:#{remote_id}"] = local_id
+          c = c.superclass
         end
-        object
-      end
-
-      # Load an AR instance from the current environment.
-      #
-      # model - The ActiveRecord class to search for.
-      # attrs - Hash of dumped record attributes.
-      #
-      # Returns an instance of model. This is usually a new record instance but
-      # can be overridden to return an existing record instead.
-      def load_object(model, attributes)
-        meth = "load_#{model.to_s.underscore}"
-        instance =
-          if respond_to?(meth)
-            send(meth, attributes) || model.new
-          else
-            model.new
-          end
-        def instance.callback(*args);end # Rails 2.x hack to disable callbacks.
-        instance
       end
 
       ##
