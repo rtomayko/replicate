@@ -54,7 +54,7 @@ module GitHub
           when ActiveRecord::Base, Array
             dumper.dump(dependent)
           else
-            warn "warn: #{self}##{reflection.name} #{association_type} association " \
+            warn "warn: #{self.class}##{reflection.name} #{association_type} association " \
                  "unexpectedly returned a #{dependent.class}. skipping."
           end
         end
