@@ -135,7 +135,7 @@ module GitHub
       # association - Name of the association whose objects should be dumped.
       #
       # Returns nothing.
-      def dump_associated(object, association)
+      def dump_association(object, association)
         model = object.class
         reflection = model.reflect_on_association(association)
         if reflection.macro == :has_and_belongs_to_many
@@ -150,27 +150,27 @@ module GitHub
 
       def dump_repository(repository)
         dump_active_record_object repository
-        dump_associated repository, :commit_comments
-        dump_associated repository, :languages
-        dump_associated repository, :issues
-        dump_associated repository, :downloads
+        dump_association repository, :commit_comments
+        dump_association repository, :languages
+        dump_association repository, :issues
+        dump_association repository, :downloads
       end
 
       def dump_user(user)
         dump_active_record_object user
-        dump_associated user, :emails
+        dump_association user, :emails
       end
 
       def dump_issue(issue)
         dump_active_record_object issue
         # dump_associated issue, :labels
-        dump_associated issue, :events
-        dump_associated issue, :comments
+        dump_association issue, :events
+        dump_association issue, :comments
       end
 
       def dump_pull_request(pull)
         dump_active_record_object pull
-        dump_associated pull, :review_comments
+        dump_association pull, :review_comments
       end
     end
 
@@ -312,7 +312,6 @@ module GitHub
           else
             model.new
           end
-        def instance.callback(*args);end # Rails 2.x hack to disable callbacks.
         instance
       end
 
