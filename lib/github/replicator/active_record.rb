@@ -67,12 +67,15 @@ module GitHub
       #
       # Returns nothing.
       def dump_association_replicants(dumper, association)
-        reflection = self.class.reflect_on_association(association)
-        if reflection.macro == :has_and_belongs_to_many
-          warn "warn: #{self}##{reflection.name} - habtm not supported yet"
+        if reflection = self.class.reflect_on_association(association)
+          if reflection.macro == :has_and_belongs_to_many
+            warn "warn: #{self}##{reflection.name} - habtm not supported yet"
+          end
+          objects = __send__(reflection.name)
+          dumper.dump(objects)
+        else
+          warn "error: #{self.class}##{association} is invalid"
         end
-        objects = __send__(reflection.name)
-        dumper.dump(objects)
       end
     end
 
