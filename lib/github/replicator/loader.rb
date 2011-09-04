@@ -21,15 +21,13 @@ module GitHub
       # Read replicant tuples from the given IO object and load into the
       # database within a single transaction.
       def read(io)
-        ActiveRecord::Base.transaction do
-          begin
-            while object = Marshal.load(io)
-              type, id, attrs = object
-              record = load(type, id, attrs)
-              yield record if block_given?
-            end
-          rescue EOFError
+        begin
+          while object = Marshal.load(io)
+            type, id, attrs = object
+            record = load(type, id, attrs)
+            yield record if block_given?
           end
+        rescue EOFError
         end
       end
 
