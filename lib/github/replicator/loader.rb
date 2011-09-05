@@ -40,7 +40,7 @@ module GitHub
       #
       # Returns the ActiveRecord object instance for the new record.
       def load(type, id, attributes)
-        model_class = Object::const_get(type)
+        model_class = type.constantize
         translate_ids attributes
         new_id, instance = model_class.load_replicant(type, id, attributes)
         register_id instance, type, id, new_id
@@ -56,6 +56,17 @@ module GitHub
             else
               warn "error: #{remote_id} missing from keymap"
             end
+          elsif value.is_a?(Array) && value.size == 3 && value[0] == :ids
+            _, type, ids = value
+            attributes[key] =
+              ids.map do |id|
+                if local_id = @keymap["#{type}:#{id}"]
+                  local_id
+                else
+                  warn "error: #{type}:#{id} missing from keymap"
+                  nil
+                end
+              end
           end
         end
       end

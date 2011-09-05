@@ -12,6 +12,11 @@ module GitHub
         [self.class.name, id]
       end
 
+      # The natural looking id for this object.
+      def natural_id
+        id
+      end
+
       # Replicator::Dumper calls this method on objects to trigger dumping a
       # replicant object tuple.
       #
@@ -68,14 +73,23 @@ module GitHub
       # Returns nothing.
       def dump_association_replicants(dumper, association)
         if reflection = self.class.reflect_on_association(association)
-          if reflection.macro == :has_and_belongs_to_many
-            warn "warn: #{self}##{reflection.name} - habtm not supported yet"
-          end
           objects = __send__(reflection.name)
           dumper.dump(objects)
+          if reflection.macro == :has_and_belongs_to_many
+            warn "warn: #{self.class}##{reflection.name} - habtm"
+            dump_has_and_belongs_to_many_replicant(dumper, reflection)
+          end
         else
           warn "error: #{self.class}##{association} is invalid"
         end
+      end
+
+      # Dump the special Habtm object used to establish many-to-many
+      # relationships between objects that have already been dumped. Note that
+      # this object and all objects referenced must have already been dumped
+      # before calling this method.
+      def dump_has_and_belongs_to_many_replicant(dumper, reflection)
+        dumper.dump Habtm.new(self, reflection)
       end
     end
 
@@ -92,6 +106,8 @@ module GitHub
         create_or_update_replicant new, attributes
       end
 
+      # Update an AR object's attributes and persist to the database without
+      # running validations or callbacks.
       def create_or_update_replicant(instance, attributes)
         def instance.callback(*args);end # Rails 2.x hack to disable callbacks.
 
@@ -102,6 +118,44 @@ module GitHub
 
         instance.save false
         [instance.id, instance]
+      end
+    end
+
+    # Special object used to dump the list of associated ids for a
+    # has_and_belongs_to_many association. The object includes attributes for
+    # locating the source object and writing the list of ids to the appropriate
+    # association method.
+    class Habtm
+      def initialize(object, reflection)
+        @object = object
+        @reflection = reflection
+      end
+
+      def id
+      end
+
+      def attributes
+        ids = @object.__send__("#{@reflection.name.to_s.singularize}_ids")
+        {
+          'id'         => [:id, "#{@object.class}:#{@object.id}"],
+          'class'      => @object.class.to_s,
+          'ref_class'  => @reflection.klass.to_s,
+          'ref_name'   => @reflection.name.to_s,
+          'collection' => [:ids, @reflection.klass.to_s, ids]
+        }
+      end
+
+      def dump_replicant(dumper)
+        type = self.class.name
+        id   = "#{@object.class.to_s}:#{@reflection.name}:#{@object.id}"
+        dumper.write type, id, attributes
+      end
+
+      def self.load_replicant(type, id, attrs)
+        object = attrs['class'].constantize.find(attrs['id'])
+        ids    = attrs['collection']
+        object.__send__("#{attrs['ref_name'].to_s.singularize}_ids=", ids)
+        [id, new(object, nil)]
       end
     end
 
