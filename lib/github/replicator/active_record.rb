@@ -76,7 +76,6 @@ module GitHub
           objects = __send__(reflection.name)
           dumper.dump(objects)
           if reflection.macro == :has_and_belongs_to_many
-            warn "warn: #{self.class}##{reflection.name} - habtm"
             dump_has_and_belongs_to_many_replicant(dumper, reflection)
           end
         else
