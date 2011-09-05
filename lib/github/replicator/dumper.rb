@@ -121,6 +121,16 @@ module GitHub
         @filters.each { |meth| meth.call(type, id, attributes, object) }
       end
 
+      # Retrieve dumped object counts for all classes.
+      #
+      # Returns a Hash of { class_name => count } where count is the number of
+      # objects dumped with a class of class_name.
+      def stats
+        stats = {}
+        @memo.each { |class_name, items| stats[class_name] = items.size }
+        stats
+      end
+
       # Grab dumped objects array. Always empty when a custom write function was
       # provided when initialized.
       def to_a
