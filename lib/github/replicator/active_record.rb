@@ -26,7 +26,7 @@ module GitHub
       # Returns nothing.
       def dump_replicant(dumper)
         dump_all_association_replicants dumper, :belongs_to
-        dumper.write self.class.to_s, id, replicant_attributes
+        dumper.write self.class.to_s, id, replicant_attributes, self
         dump_all_association_replicants dumper, :has_one
       end
 
@@ -147,7 +147,7 @@ module GitHub
       def dump_replicant(dumper)
         type = self.class.name
         id   = "#{@object.class.to_s}:#{@reflection.name}:#{@object.id}"
-        dumper.write type, id, attributes
+        dumper.write type, id, attributes, self
       end
 
       def self.load_replicant(type, id, attrs)

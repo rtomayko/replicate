@@ -28,10 +28,50 @@ module GitHub
       # write  - Block called when an object needs to be written. Use this for
       #          complete control over how objects are serialized.
       def initialize(io=nil, &write)
-        @objects = []
-        @io = io
-        @write = write
-        @memo = {}
+        @filters = []
+        @memo = Hash.new { |hash,k| hash[k] = {} }
+
+        marshal_to io if io
+        filter write  if write
+      end
+
+      # Register a dump filter. Guaranteed to be called exactly once per
+      # distinct object with the type, id, attributes, object structure. Filters
+      # may modify the attributes hash to modify the view of successive filters.
+      # Filters are executed in the reverse order of which they were registered.
+      # This means filters registered later modify the view of filters
+      # registered earlier.
+      #
+      # Dump filters are used to implement all output generating as well as
+      # logging status output.
+      #
+      # p - An optional Proc object. Must respond to call.
+      # block - An optional block.
+      #
+      # Returns nothing.
+      def filter(p=nil, &block)
+        @filters.unshift p if p
+        @filters.unshift block if block
+      end
+
+      # Sugar for creating a filter with an object instance. Instances of the
+      # class must respond to call(type, id, attrs, object).
+      #
+      # klass - The class to create. Must respond to new.
+      # args  - Arguments to pass to klass#new in addition to self.
+      #
+      # Returns the object created.
+      def use(klass, *args, &block)
+        instance = klass.new(self, *args, &block)
+        filter instance
+        instance
+      end
+
+      # Register a filter to write marshalled data to the given IO object.
+      def marshal_to(io)
+        filter do |type, id, attrs, obj|
+          Marshal.dump([type, id, attrs], io)
+        end
       end
 
       # Dump one or more objects to the internal array or provided dump
@@ -62,7 +102,7 @@ module GitHub
         else
           return false
         end
-        @memo["#{type}:#{id}"]
+        @memo[type][id]
       end
 
       # Call the write method given in the initializer or write to the internal
@@ -71,17 +111,14 @@ module GitHub
       # type       - The model class name as a String.
       # id         - The record's id. Usually an integer.
       # attributes - All model attributes.
+      # object     - The object this dump is generated for.
       #
       # Returns nothing.
-      def write(type, id, attributes)
+      def write(type, id, attributes, object)
         return if dumped?([type, id])
-        @memo["#{type}:#{id}"] = true
-        @write.call(type, id, attributes) if @write
-        if @io
-          Marshal.dump([type, id, attributes], @io)
-        elsif @write.nil?
-          @objects << [type, id, attributes]
-        end
+        @memo[type][id] = true
+
+        @filters.each { |meth| meth.call(type, id, attributes, object) }
       end
 
       # Grab dumped objects array. Always empty when a custom write function was
