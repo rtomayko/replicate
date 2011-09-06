@@ -12,11 +12,6 @@ module GitHub
         [self.class.name, id]
       end
 
-      # The natural looking id for this object.
-      def natural_id
-        id
-      end
-
       # Replicator::Dumper calls this method on objects to trigger dumping a
       # replicant object tuple.
       #
