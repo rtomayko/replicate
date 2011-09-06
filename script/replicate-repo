@@ -125,7 +125,7 @@ if mode == :dump
     exit 1
   end
 
-  GitHub::Replicator::Dumper.new options do |dumper|
+  GitHub::Replicator::Dumper.new do |dumper|
     dumper.marshal_to out
     dumper.log_to $stderr, verbose, quiet
     dumper.dump repository
