@@ -115,6 +115,7 @@ module GitHub
           new_id, instance = model_class.load_replicant(type, id, attributes)
         rescue => boom
           warn "error: loading #{type} #{id} #{boom.class} #{boom}"
+          raise
         end
         register_id instance, type, id, new_id
         instance
