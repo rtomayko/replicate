@@ -18,16 +18,19 @@ require File.expand_path('../../config/basic', __FILE__)
 require 'optparse'
 
 # default options
-mode    = :pipe
-verbose = false
-quiet   = false
-out     = $stdout
+mode     = :pipe
+verbose  = false
+quiet    = false
+out      = $stdout
+username = `git config github.user`.chomp
+username = nil if username.empty?
 
 # parse arguments
 file = __FILE__
 ARGV.options do |opts|
   opts.on("-d", "--dump")      { mode = :dump }
   opts.on("-l", "--load")      { mode = :load }
+  opts.on("-u", "--user")      { |val| username = val }
   opts.on("-v", "--verbose")   { verbose = true }
   opts.on("-q", "--quiet")     { quiet = true }
   opts.on_tail("-h", "--help") { exec "grep ^#/<'#{file}'|cut -c4-" }
@@ -67,6 +70,7 @@ if domain && [:dump, :pipe].include?(mode)
   args = ""
   args << "-q " if mode == :pipe && !verbose
   args << "-v " if verbose
+  args << "-u #{username}" if username
 
   login = `git config github.shelluser`.chomp
   login = nil if login.empty?
@@ -108,7 +112,20 @@ ActiveRecord::Base.connection.send(:query_cache_enabled=, true)
 # stdout. the database should not be modified at all by this operation.
 if mode == :dump
   repository = Repository.nwo(repo)
-  GitHub::Replicator::Dumper.new do |dumper|
+
+  # verify that dumping user has access to or has unlocked the repository
+  actor = User.find_by_login(username)
+  if actor.nil? && repository.private?
+    warn "error: can't dump private repository without valid github.com username."
+    warn "       use `git config github.user <you>' to configure and try again."
+    exit 1
+  elsif !repository.pullable_by?(actor)
+    warn "error: you don't have access to #{repository.name_with_owner}."
+    warn "       visit #{GitHub.url}/#{repository.name_with_owner} to unlock it."
+    exit 1
+  end
+
+  GitHub::Replicator::Dumper.new options do |dumper|
     dumper.marshal_to out
     dumper.log_to $stderr, verbose, quiet
     dumper.dump repository
