@@ -1,4 +1,4 @@
-# GitHub::Replicator (`script/replicate`)
+# GitHub::Replicator (`script/replicate-repo`)
 
 ### Basic usage
 
@@ -9,7 +9,7 @@ The [amiridis/playground](https://github.com/amiridis/playground) repository is
 Petros's work bench and makes for great sample data. To import the repository,
 issues, pull requests, and other associated objects into your environment:
 
-    [rtomayko@iron:github]$ script/replicate https://github.com/amiridis/playground
+    [rtomayko@iron:github]$ script/replicate-repo https://github.com/amiridis/playground
     ==> connecting to aux1-ext.rs.github.com for amiridis/playground
     ==> loaded 221 total objects:
     CommitComment                11
@@ -48,7 +48,7 @@ For instance, to dump the current production github/haystack repository state
 (including all associated orgs, teams, users, issues, pull requests, etc.) to
 a `haystack.dump` file in the current directory:
 
-    [rtomayko@iron:github]$ script/replicate -d https://github.com/github/haystack > haystack.dump
+    [rtomayko@iron:github]$ script/replicate-repo -d https://github.com/github/haystack > haystack.dump
     ==> connecting to aux1-ext.rs.github.com for github/haystack
     ==> dumped 382 total objects:
     CommitComment      5
@@ -69,7 +69,7 @@ a `haystack.dump` file in the current directory:
 
 You can then load this dump file into the current environment at any time using:
 
-    [rtomayko@iron:github]$ script/replicate -l < haystack.dump
+    [rtomayko@iron:github]$ script/replicate-repo -l < haystack.dump
     ==> loaded 382 total objects:
     CommitComment      5
     Habtm             10

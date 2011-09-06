@@ -1,0 +1,143 @@
+#!/usr/bin/env ruby
+#!/usr/bin/env ruby
+#/ Usage: script/replicate-repo https://github.com/<owner>/<repo>
+#/        script/replicate-repo --dump <owner>/<repo> > repo.dump
+#/        script/replicate-repo --load < repo.dump
+#/ Dump and load repositories from and to the database. The first form dumps a
+#/ remote repository and loads into the current environment. The --dump form
+#/ dumps from the current environment to stdout. The --load form reads from
+#/ stdin and loads into the current environment.
+#/
+#/   -d, --dump           Dump the repository and all related objects to stdout.
+#/   -l, --load           Load a dump file from stdin.
+#/
+#/   -v, --verbose        Write more status output.
+#/   -q, --quiet          Write less status output.
+$stderr.sync = true
+require File.expand_path('../../config/basic', __FILE__)
+require 'optparse'
+
+# default options
+mode    = :pipe
+verbose = false
+quiet   = false
+out     = $stdout
+
+# parse arguments
+file = __FILE__
+ARGV.options do |opts|
+  opts.on("-d", "--dump")      { mode = :dump }
+  opts.on("-l", "--load")      { mode = :load }
+  opts.on("-v", "--verbose")   { verbose = true }
+  opts.on("-q", "--quiet")     { quiet = true }
+  opts.on_tail("-h", "--help") { exec "grep ^#/<'#{file}'|cut -c4-" }
+  opts.parse!
+end
+
+# parse URL or repo argument and adjust the mode accordingly.
+proto, domain, repo = nil
+if url = ARGV[0]
+  # url or short repo name given
+  if url =~ %r|^[^/]+/[^/]+$|
+    repo = url
+    domain = nil
+  elsif url =~ %r{^(https?://|git://|git@)((?:[^.]*\.)?github\.com)/([^/]+/[^/]+)}
+    proto, domain, repo = $1, $2, $3
+    repo.chomp!('.git')
+  end
+elsif $stdin.tty?
+  # probably ran with no args, show usage
+  exec "#$0", "--help"
+else
+  # assume we're loading with no arguments and stdin isn't a tty
+  mode = :load
+end
+
+# if neither dump or load were specified explicitly but a repo name was given,
+# assume we want to dump in production and load into the current environment.
+if mode == :pipe && domain.nil?
+  domain = "github.com"
+end
+
+domain = "rs.github.com" if domain == "github.com"
+domain = "aux1-ext.#{domain}" if domain && domain.include?('.com')
+
+# run remote commands over ssh.
+if domain && [:dump, :pipe].include?(mode)
+  args = ""
+  args << "-q " if mode == :pipe && !verbose
+  args << "-v " if verbose
+
+  login = `git config github.shelluser`.chomp
+  login = nil if login.empty?
+  remote = [login, domain].compact.join('@')
+
+  argv = ["ssh", remote, "gudo replicate-repo #{args} -d '#{repo}'"]
+
+  # run dump command on remote system and write to stdout. process ends here.
+  warn "==> connecting to #{remote} for #{repo}" if !quiet
+  exec *argv if mode == :dump
+
+  # run dump command on remote system and pipe into stdin for the loader.
+  rd, wr = IO.pipe
+  pid =
+    fork do
+      rd.close
+      $stdout.reopen wr
+      exec *argv
+    end
+  at_exit { Process.wait pid }
+  wr.close
+  $stdin.reopen rd
+
+  # switch to load mode
+  mode = :load
+end
+
+# load rails environment and replicator lib.
+require 'config/environment'
+require 'github/replicator'
+
+# hack to enable AR query cache
+ActiveRecord::ConnectionAdapters::QueryCache.
+  send :attr_writer, :query_cache, :query_cache_enabled
+ActiveRecord::Base.connection.send(:query_cache=, {})
+ActiveRecord::Base.connection.send(:query_cache_enabled=, true)
+
+# dump mode means we're reading records from the database here and writing to
+# stdout. the database should not be modified at all by this operation.
+if mode == :dump
+  repository = Repository.nwo(repo)
+  GitHub::Replicator::Dumper.new do |dumper|
+    dumper.marshal_to out
+    dumper.log_to $stderr, verbose, quiet
+    dumper.dump repository
+  end
+
+# load mode means we're reading objects from stdin and creating them in the
+# database. once database entries are loaded, git data is mirrored.
+elsif mode == :load
+  repositories = []
+  GitHub::Replicator::Loader.new do |loader|
+    loader.filter do |type, id, attrs, obj|
+      next if type != 'Repository'
+      repositories << [obj, attrs]
+    end
+    loader.log_to $stderr, verbose, quiet
+    loader.read $stdin
+  end
+
+  # mirror repository git data
+  if repositories.any?
+    begin
+      warn "==> mirroring #{repositories.size} git repositories"
+      repositories.each do |repository, attrs|
+        url = attrs['canonical_git_url']
+        warn "mirroring: #{url}"
+        repository.mirror_remote_repository! url
+      end
+    rescue Interrupt
+      warn "\r==> interrupt. skipping this mirroring shit."
+    end
+  end
+end
