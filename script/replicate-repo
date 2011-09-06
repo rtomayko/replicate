@@ -76,7 +76,9 @@ if domain && [:dump, :pipe].include?(mode)
   login = nil if login.empty?
   remote = [login, domain].compact.join('@')
 
-  argv = ["ssh", remote, "gudo replicate-repo #{args} -d '#{repo}'"]
+  remote_command =
+    "sudo -u git -- /data/github/current/script/replicate-repo #{args} -d '#{repo}'"
+  argv = ["ssh", remote, remote_command]
 
   # run dump command on remote system and write to stdout. process ends here.
   warn "==> connecting to #{remote} for #{repo}" if !quiet
