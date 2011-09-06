@@ -30,7 +30,7 @@ file = __FILE__
 ARGV.options do |opts|
   opts.on("-d", "--dump")      { mode = :dump }
   opts.on("-l", "--load")      { mode = :load }
-  opts.on("-u", "--user")      { |val| username = val }
+  opts.on("-u", "--user=val")  { |val| username = val }
   opts.on("-v", "--verbose")   { verbose = true }
   opts.on("-q", "--quiet")     { quiet = true }
   opts.on_tail("-h", "--help") { exec "grep ^#/<'#{file}'|cut -c4-" }
