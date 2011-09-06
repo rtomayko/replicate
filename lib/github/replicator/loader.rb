@@ -111,7 +111,11 @@ module GitHub
       def load(type, id, attributes)
         model_class = type.constantize
         translate_ids attributes
-        new_id, instance = model_class.load_replicant(type, id, attributes)
+        begin
+          new_id, instance = model_class.load_replicant(type, id, attributes)
+        rescue => boom
+          warn "error: loading #{type} #{id} #{boom.class} #{boom}"
+        end
         register_id instance, type, id, new_id
         instance
       end
