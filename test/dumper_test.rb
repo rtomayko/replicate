@@ -15,7 +15,7 @@ class DumperTest < Test::Unit::TestCase
   def test_basic_filter
     called = false
     object = thing('test' => 'value')
-    @dumper.filter do |type, id, attrs, obj|
+    @dumper.listen do |type, id, attrs, obj|
       assert !called
       assert_equal 'Replicate::Object', type
       assert_equal object.id, id
@@ -34,7 +34,7 @@ class DumperTest < Test::Unit::TestCase
   def test_never_dumps_objects_more_than_once
     called = false
     object = thing('test' => 'value')
-    @dumper.filter do |type, id, attrs, obj|
+    @dumper.listen do |type, id, attrs, obj|
       assert !called
       called = true
     end
@@ -62,7 +62,7 @@ class DumperTest < Test::Unit::TestCase
     Replicate::Dumper.new do |dumper|
       filter = lambda { |*args| }
       (class <<filter;self;end).send(:define_method, :complete) { called = true }
-      dumper.filter filter
+      dumper.listen filter
       dumper.dump thing
       assert !called
     end

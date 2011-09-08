@@ -15,7 +15,7 @@ class LoaderTest < Test::Unit::TestCase
   def test_basic_filter
     called = false
     object = thing('test' => 'value')
-    @loader.filter do |type, id, attrs, obj|
+    @loader.listen do |type, id, attrs, obj|
       assert !called
       assert_equal 'Replicate::Object', type
       assert_equal object.id, id
@@ -30,7 +30,7 @@ class LoaderTest < Test::Unit::TestCase
   def test_reading_from_io
     called = false
     data = Marshal.dump(['Replicate::Object', 10, {'test' => 'value'}])
-    @loader.filter do |type, id, attrs, obj|
+    @loader.listen do |type, id, attrs, obj|
       assert !called
       assert_equal 'Replicate::Object', type
       assert_equal 'value', attrs['test']
@@ -53,7 +53,7 @@ class LoaderTest < Test::Unit::TestCase
     Replicate::Loader.new do |loader|
       filter = lambda { |*args| }
       (class <<filter;self;end).send(:define_method, :complete) { called = true }
-      loader.filter filter
+      loader.listen filter
       obj = thing
       loader.feed obj.class, obj.id, obj.attributes
       assert !called
@@ -63,7 +63,7 @@ class LoaderTest < Test::Unit::TestCase
 
   def test_translating_id_attributes
     objects = []
-    @loader.filter { |type, id, attrs, object| objects << object }
+    @loader.listen { |type, id, attrs, object| objects << object }
 
     object1 = thing
     @loader.feed object1.class, object1.id, object1.attributes
@@ -76,7 +76,7 @@ class LoaderTest < Test::Unit::TestCase
 
   def test_translating_multiple_id_attributes
     objects = []
-    @loader.filter { |type, id, attrs, object| objects << object }
+    @loader.listen { |type, id, attrs, object| objects << object }
 
     members = (0..9).map { |i| thing('number' => i) }
     members.each do |member|

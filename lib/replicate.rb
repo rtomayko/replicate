@@ -1,8 +1,9 @@
 module Replicate
-  autoload :Object, 'replicate/object'
-  autoload :Dumper, 'replicate/dumper'
-  autoload :Loader, 'replicate/loader'
-  autoload :Status, 'replicate/status'
+  autoload :Emitter, 'replicate/emitter'
+  autoload :Dumper,  'replicate/dumper'
+  autoload :Loader,  'replicate/loader'
+  autoload :Object,  'replicate/object'
+  autoload :Status,  'replicate/status'
 
   if defined?(ActiveRecord::Base)
     require 'replicate/active_record'

@@ -9,51 +9,15 @@ module Replicate
   # mapping of primary keys from the dump system to the current environment.
   # This mapping is used to properly establish new foreign key values on all
   # records inserted.
-  class Loader
+  class Loader < Emitter
+
+    # Stats hash.
     attr_reader :stats
 
     def initialize
       @keymap = Hash.new { |hash,k| hash[k] = {} }
-      @foreign_key_map = {}
-      @filters = []
-      @stats = Hash.new { |hash, k| hash[k] = 0 }
-
-      if block_given?
-        yield self
-        complete
-      end
-    end
-
-    # Register a load filter to be called for each loaded object with the
-    # type, id, attributes, object structure. Filters are executed in the
-    # reverse order of which they were registered. Filters registered later
-    # modify the view of filters registered earlier.
-    #
-    # p - An optional Proc object. Must respond to call.
-    # block - An optional block.
-    #
-    # Returns nothing.
-    def filter(p=nil, &block)
-      @filters.unshift p if p
-      @filters.unshift block if block
-    end
-
-    # Sugar for creating a filter with an object instance. Instances of the
-    # class must respond to call(type, id, attrs, object).
-    #
-    # klass - The class to create. Must respond to new.
-    # args  - Arguments to pass to klass#new in addition to self.
-    #
-    # Returns the object created.
-    def use(klass, *args, &block)
-      instance = klass.new(self, *args, &block)
-      filter instance
-      instance
-    end
-
-    # Notify all filters that processing is complete.
-    def complete
-      @filters.each { |f| f.complete if f.respond_to?(:complete) }
+      @stats  = Hash.new { |hash,k| hash[k] = 0 }
+      super
     end
 
     # Register a filter to write status information to the given stream. By
@@ -82,8 +46,7 @@ module Replicate
       type = type.to_s
       object = load(type, id, attrs)
       @stats[type] += 1
-      @filters.each { |filter| filter.call(type, id, attrs, object) }
-      object
+      emit type, id, attrs, object
     end
 
     # Read multiple [type, id, attrs] replicant tuples from io and call the

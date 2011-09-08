@@ -15,65 +15,23 @@ module Replicate
   #     >>   dumper.dump User.find(1234)
   #     >> end
   #
-  class Dumper
+  class Dumper < Emitter
     # Create a new Dumper.
     #
     # io     - IO object to write marshalled replicant objects to.
     # block  - Dump context block. If given, the end of the block's execution
     #          is assumed to be the end of the dump stream.
     def initialize(io=nil)
-      @filters = []
       @memo = Hash.new { |hash,k| hash[k] = {} }
-
-      marshal_to io if io
-      if block_given?
-        yield self
-        complete
+      super() do
+        marshal_to io if io
+        yield self if block_given?
       end
-    end
-
-    # Register a dump filter. Guaranteed to be called exactly once per
-    # distinct object with the type, id, attributes, object structure. Filters
-    # may modify the attributes hash to modify the view of successive filters.
-    # Filters are executed in the reverse order of which they were registered.
-    # This means filters registered later modify the view of filters
-    # registered earlier.
-    #
-    # Dump filters are used to implement all output generating as well as
-    # logging status output.
-    #
-    # p - An optional Proc object. Must respond to call.
-    # block - An optional block.
-    #
-    # Returns nothing.
-    def filter(p=nil, &block)
-      @filters.unshift p if p
-      @filters.unshift block if block
-    end
-
-    # Sugar for creating a filter with an object instance. Instances of the
-    # class must respond to call(type, id, attrs, object).
-    #
-    # klass - The class to create. Must respond to new.
-    # args  - Arguments to pass to klass#new in addition to self.
-    #
-    # Returns the object created.
-    def use(klass, *args, &block)
-      instance = klass.new(self, *args, &block)
-      filter instance
-      instance
-    end
-
-    # Notify all filters that processing is complete.
-    def complete
-      @filters.each { |f| f.complete if f.respond_to?(:complete) }
     end
 
     # Register a filter to write marshalled data to the given IO object.
     def marshal_to(io)
-      filter do |type, id, attrs, obj|
-        Marshal.dump([type, id, attrs], io)
-      end
+      listen { |type, id, attrs, obj| Marshal.dump([type, id, attrs], io) }
     end
 
     # Register a filter to write status information to the given stream. By
@@ -105,7 +63,7 @@ module Replicate
         if object.respond_to?(:dump_replicant)
           object.dump_replicant(self)
         else
-          raise NoMethodError, "#{object.class} must define #dump_replicant"
+          raise NoMethodError, "#{object.class} must respond to #dump_replicant"
         end
       end
     end
@@ -122,20 +80,20 @@ module Replicate
       @memo[type.to_s][id]
     end
 
-    # Called exactly once per unique type and id. Runs all registered filters.
+    # Called exactly once per unique type and id. Emits to all listeners.
     #
     # type       - The model class name as a String.
     # id         - The record's id. Usually an integer.
     # attributes - All model attributes.
     # object     - The object this dump is generated for.
     #
-    # Returns nothing.
+    # Returns the object.
     def write(type, id, attributes, object)
       type = type.to_s
       return if dumped?([type, id])
       @memo[type][id] = true
 
-      @filters.each { |meth| meth.call(type, id, attributes, object) }
+      emit type, id, attributes, object
     end
 
     # Retrieve dumped object counts for all classes.
