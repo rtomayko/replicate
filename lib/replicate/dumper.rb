@@ -12,14 +12,13 @@ module Replicate
   #     >> Replicate::Dumper.new do |dumper|
   #     >>   dumper.marshal_to $stdout
   #     >>   dumper.log_to $stderr
-  #     >>   dumper.dump(User / :defunkt / :github)
+  #     >>   dumper.dump User.find(1234)
   #     >> end
   #
   class Dumper
     # Create a new Dumper.
     #
-    # io     - IO object to write marshalled replicant objects to. When
-    #          not given, objects are written to an array available at #to_a.
+    # io     - IO object to write marshalled replicant objects to.
     # block  - Dump context block. If given, the end of the block's execution
     #          is assumed to be the end of the dump stream.
     def initialize(io=nil)
@@ -81,7 +80,7 @@ module Replicate
     # default, a single line is used to report object counts while the dump is
     # in progress; dump counts for each class are written when complete. The
     # verbose and quiet options can be used to increase or decrease
-    # verbository.
+    # verbosity.
     #
     # out - An IO object to write to, like stderr.
     # verbose - Whether verbose output should be enabled.
@@ -106,12 +105,12 @@ module Replicate
         if object.respond_to?(:dump_replicant)
           object.dump_replicant(self)
         else
-          warn "error: #{object.class} does not define #dump_replicant"
+          raise NoMethodError, "#{object.class} must define #dump_replicant"
         end
       end
     end
 
-    # Check if object has been dumped yet.
+    # Check if object has been written yet.
     def dumped?(object)
       if object.respond_to?(:replicant_id)
         type, id = object.replicant_id
@@ -120,11 +119,10 @@ module Replicate
       else
         return false
       end
-      @memo[type][id]
+      @memo[type.to_s][id]
     end
 
-    # Call the write method given in the initializer or write to the internal
-    # objects array when no write method was given.
+    # Called exactly once per unique type and id. Runs all registered filters.
     #
     # type       - The model class name as a String.
     # id         - The record's id. Usually an integer.
@@ -133,6 +131,7 @@ module Replicate
     #
     # Returns nothing.
     def write(type, id, attributes, object)
+      type = type.to_s
       return if dumped?([type, id])
       @memo[type][id] = true
 
@@ -147,12 +146,6 @@ module Replicate
       stats = {}
       @memo.each { |class_name, items| stats[class_name] = items.size }
       stats
-    end
-
-    # Grab dumped objects array. Always empty when a custom write function was
-    # provided when initialized.
-    def to_a
-      @objects
     end
   end
 end
