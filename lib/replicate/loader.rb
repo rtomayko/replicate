@@ -13,9 +13,7 @@ module Replicate
     attr_reader :stats
 
     def initialize
-      fail "not ready for production" if RAILS_ENV == 'production'
-      @keymap = {}
-      @warned = {}
+      @keymap = Hash.new { |hash,k| hash[k] = {} }
       @foreign_key_map = {}
       @filters = []
       @stats = Hash.new { |hash, k| hash[k] = 0 }
@@ -81,6 +79,7 @@ module Replicate
     #
     # Returns the need object resulting from the load operation.
     def feed(type, id, attrs)
+      type = type.to_s
       object = load(type, id, attrs)
       @stats[type] += 1
       @filters.each { |filter| filter.call(type, id, attrs, object) }
@@ -108,7 +107,7 @@ module Replicate
     #
     # Returns the new object instance.
     def load(type, id, attributes)
-      model_class = type.constantize
+      model_class = constantize(type)
       translate_ids attributes
       begin
         new_id, instance = model_class.load_replicant(type, id, attributes)
@@ -124,31 +123,27 @@ module Replicate
     # local system id values. The attributes hash may include special id
     # values like this:
     #     { 'title'         => 'hello there',
-    #       'repository_id' => [:id, 'Repository:1234'],
-    #       'label_ids'     => [:ids, 'Label', [333, 444, 555, 666, ...]]
+    #       'repository_id' => [:id, 'Repository', 1234],
+    #       'label_ids'     => [:id, 'Label', [333, 444, 555, 666, ...]]
     #       ... }
     # These values are translated to local system ids. All object
     # references must be loaded prior to the referencing object.
     def translate_ids(attributes)
       attributes.each do |key, value|
-        if value.is_a?(Array) && value.size == 2 && value[0] == :id
-          remote_id = value[1]
-          if local_id = @keymap[remote_id]
-            attributes[key] = local_id
-          else
-            warn "error: #{remote_id} missing from keymap"
-          end
-        elsif value.is_a?(Array) && value.size == 3 && value[0] == :ids
-          _, type, ids = value
-          attributes[key] =
-            ids.map do |id|
-              if local_id = @keymap["#{type}:#{id}"]
-                local_id
-              else
-                warn "error: #{type}:#{id} missing from keymap"
-                nil
-              end
+        next unless value.is_a?(Array) && value[0] == :id
+        type, value = value[1].to_s, value[2]
+        local_ids =
+          Array(value).map do |remote_id|
+            if local_id = @keymap[type][remote_id]
+              local_id
+            else
+              warn "error: #{type} #{remote_id} missing from keymap"
             end
+          end
+        if value.is_a?(Array)
+          attributes[key] = local_ids
+        else
+          attributes[key] = local_ids[0]
         end
       end
     end
@@ -156,12 +151,20 @@ module Replicate
     # Register an id in the keymap. Every object loaded must be stored here so
     # that key references can be resolved.
     def register_id(object, type, remote_id, local_id)
-      @keymap["#{type}:#{remote_id}"] = local_id
+      @keymap[type.to_s][remote_id] = local_id
       c = object.class
       while !['Object', 'ActiveRecord::Base'].include?(c.name)
-        @keymap["#{c.name}:#{remote_id}"] = local_id
+        @keymap[c.name][remote_id] = local_id
         c = c.superclass
       end
+    end
+
+
+    # Turn a string into an object by traversing constants.
+    def constantize(string)
+      namespace = Object
+      string.split('::').each { |name| namespace = namespace.const_get(name) }
+      namespace
     end
   end
 end

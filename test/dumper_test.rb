@@ -17,7 +17,7 @@ class DumperTest < Test::Unit::TestCase
     object = thing('test' => 'value')
     @dumper.filter do |type, id, attrs, obj|
       assert !called
-      assert_equal 'DumperTest::Thing', type
+      assert_equal 'Replicate::Object', type
       assert_equal object.id, id
       assert_equal 'value', attrs['test']
       assert_equal object.attributes, attrs
@@ -48,12 +48,13 @@ class DumperTest < Test::Unit::TestCase
     io = StringIO.new
     @dumper.marshal_to io
     @dumper.dump object = thing
-    assert_equal Marshal.dump([Thing.to_s, object.id, object.attributes]), io.string
+    data = Marshal.dump(['Replicate::Object', object.id, object.attributes])
+    assert_equal data, io.string
   end
 
   def test_stats
     10.times { @dumper.dump thing }
-    assert_equal({Thing.to_s => 10}, @dumper.stats)
+    assert_equal({'Replicate::Object' => 10}, @dumper.stats)
   end
 
   def test_block_form_runs_complete

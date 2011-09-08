@@ -34,7 +34,7 @@ module Replicate
       self.class.reflect_on_all_associations(:belongs_to).each do |reflection|
         foreign_key = (reflection.options[:foreign_key] || "#{reflection.name}_id").to_s
         if id = attributes[foreign_key]
-          attributes[foreign_key] = [:id, "#{reflection.klass.to_s}:#{id}"]
+          attributes[foreign_key] = [:id, reflection.klass.to_s, id]
         end
       end
       attributes
@@ -130,11 +130,11 @@ module Replicate
     def attributes
       ids = @object.__send__("#{@reflection.name.to_s.singularize}_ids")
       {
-        'id'         => [:id, "#{@object.class}:#{@object.id}"],
+        'id'         => [:id, @object.class.to_s, @object.id],
         'class'      => @object.class.to_s,
         'ref_class'  => @reflection.klass.to_s,
         'ref_name'   => @reflection.name.to_s,
-        'collection' => [:ids, @reflection.klass.to_s, ids]
+        'collection' => [:id, @reflection.klass.to_s, ids]
       }
     end
 
