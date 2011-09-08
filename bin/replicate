@@ -1,0 +1,65 @@
+#!/usr/bin/env ruby
+#/        script/replicate --dump "<ruby>" > objects.dump
+#/        script/replicate --load < objects.dump
+#/ Dump and load objects from and to the database. The --dump form writes
+#/ to stdout the objects returned by evaluating the ruby expression <ruby>.
+#/ The --load form reads dump data from stdin and loads into the current
+#/ environment.
+#/
+#/   -d, --dump           Dump the repository and all related objects to stdout.
+#/   -l, --load           Load a dump file from stdin.
+#/
+#/   -v, --verbose        Write more status output.
+#/   -q, --quiet          Write less status output.
+$stderr.sync = true
+require 'optparse'
+
+# default options
+mode     = :pipe
+verbose  = false
+quiet    = false
+out      = $stdout
+
+# parse arguments
+file = __FILE__
+usage = lambda { exec "grep ^#/<'#{file}'|cut -c4-" }
+ARGV.options do |opts|
+  opts.on("-d", "--dump")      { mode = :dump }
+  opts.on("-l", "--load")      { mode = :load }
+  opts.on("-v", "--verbose")   { verbose = true }
+  opts.on("-q", "--quiet")     { quiet = true }
+  opts.on_tail("-h", "--help", &usage)
+  opts.parse!
+end
+
+# load rails environment and replicator lib.
+require 'config/environment'
+require 'replicate'
+
+# hack to enable AR query cache
+if defined?(ActiveRecord::Base)
+  ActiveRecord::ConnectionAdapters::QueryCache.
+    send :attr_writer, :query_cache, :query_cache_enabled
+  ActiveRecord::Base.connection.send(:query_cache=, {})
+  ActiveRecord::Base.connection.send(:query_cache_enabled=, true)
+end
+
+# dump mode means we're reading records from the database here and writing to
+# stdout. the database should not be modified at all by this operation.
+if mode == :dump
+  usage.call if ARGV.empty? || ARGV[0].empty?
+  objects = eval(ARGV[0])
+  Replicate::Dumper.new do |dumper|
+    dumper.marshal_to out
+    dumper.log_to $stderr, verbose, quiet
+    dumper.dump objects
+  end
+
+# load mode means we're reading objects from stdin and creating them under
+# the current environment.
+elsif mode == :load
+  Replicate::Loader.new do |loader|
+    loader.log_to $stderr, verbose, quiet
+    loader.read $stdin
+  end
+end
