@@ -41,13 +41,13 @@ Basic support for dumping and loading ActiveRecord objects is included. When an
 object is dumped, all `belongs_to` and `has_one` associations are automatically
 followed and included in the dump. You can mark `has_many` and
 `has_and_belongs_to_many` associations for automatic inclusion using the
-`replicate_attributes` macro:
+`replicate_associations` macro:
 
     class User < ActiveRecord::Base
       belongs_to :profile
       has_many   :email_addresses
 
-      replicate_attributes :email_addresses
+      replicate_associations :email_addresses
     end
 
 By default, the loader attempts to create a new record for all objects. This can
