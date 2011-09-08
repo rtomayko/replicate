@@ -1,4 +1,5 @@
 module Replicate
+  autoload :Object, 'replicate/object'
   autoload :Dumper, 'replicate/dumper'
   autoload :Loader, 'replicate/loader'
   autoload :Status, 'replicate/status'

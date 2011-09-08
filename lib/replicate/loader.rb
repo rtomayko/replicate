@@ -158,7 +158,7 @@ module Replicate
     def register_id(object, type, remote_id, local_id)
       @keymap["#{type}:#{remote_id}"] = local_id
       c = object.class
-      while c != Object && c != ActiveRecord::Base
+      while !['Object', 'ActiveRecord::Base'].include?(c.name)
         @keymap["#{c.name}:#{remote_id}"] = local_id
         c = c.superclass
       end

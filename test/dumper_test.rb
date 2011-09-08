@@ -3,34 +3,13 @@ require 'stringio'
 require 'replicate'
 
 class DumperTest < Test::Unit::TestCase
-
-  class Thing
-    attr_accessor :id, :attributes
-
-    def initialize(id, attributes={})
-      @id = id
-      @attributes = attributes
-    end
-
-    def dump_replicant(dumper)
-      dumper.write self.class, @id, @attributes, self
-    end
-
-    def self.load_replicant(type, id, attrs)
-      new_id = 10000 + id.to_i
-      [new_id, new(new_id, attrs)]
-    end
-  end
-
   def setup
     @dumper = Replicate::Dumper.new
   end
 
   def thing(attrs={})
-    (@id ||= 0)
-    @id += 1
     attrs = {'number' => 123, 'string' => 'hello', 'time' => Time.new}.merge(attrs)
-    Thing.new @id, attrs
+    Replicate::Object.new attrs
   end
 
   def test_basic_filter
