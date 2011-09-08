@@ -4,8 +4,7 @@ module Replicate
   autoload :Loader,  'replicate/loader'
   autoload :Object,  'replicate/object'
   autoload :Status,  'replicate/status'
+  autoload :AR,      'replicate/active_record'
 
-  if defined?(ActiveRecord::Base)
-    require 'replicate/active_record'
-  end
+  AR if defined?(::ActiveRecord::Base)
 end
