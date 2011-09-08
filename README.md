@@ -39,26 +39,16 @@ ActiveRecord 3.x is planned.*
 
 Basic support for dumping and loading ActiveRecord objects is included. When an
 object is dumped, all `belongs_to` and `has_one` associations are automatically
-followed and included in the dump.
-
-The `dump_replicant` method can be overridden on a class-by-class basis to
-include additional associations:
+followed and included in the dump. You can mark `has_many` and
+`has_and_belongs_to_many` associations for automatic inclusion using
+the `replicate_attributes` macro:
 
     class User < ActiveRecord::Base
       belongs_to :profile
       has_many   :email_addresses
 
-      def dump_replicant(dumper)
-        super
-        dump_association_replicants dumper, :email_addresses
-      end
+      replicate_attributes :email_addresses
     end
-
-Here, the `dump_replicant` method is overridden to include all email address
-records for a User any time a user object is dumped. The `super` implementation
-handles dumping the `profile` object and the User object itself. The
-`dump_association_replicants` helper method handles `has_many` and
-`has_and_belongs_to_many` associations.
 
 ## Custom Objects
 

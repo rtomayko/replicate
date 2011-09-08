@@ -31,13 +31,6 @@ end
 class User < ActiveRecord::Base
   has_one  :profile, :dependent => :destroy
   has_many :emails,  :dependent => :destroy, :order => 'id'
-
-  attr_accessor :dump_emails
-
-  def dump_replicant(dumper)
-    super
-    dump_association_replicants dumper, :emails if dump_emails
-  end
 end
 
 class Profile < ActiveRecord::Base
@@ -54,12 +47,14 @@ class ActiveRecordTest < Test::Unit::TestCase
     ActiveRecord::Base.connection.increment_open_transactions
     ActiveRecord::Base.connection.begin_db_transaction
 
-    @dumper = Replicate::Dumper.new
-    @loader = Replicate::Loader.new
-
     @rtomayko = User.find_by_login('rtomayko')
     @kneath   = User.find_by_login('kneath')
     @tmm1     = User.find_by_login('tmm1')
+
+    User.replicate_associations = []
+
+    @dumper = Replicate::Dumper.new
+    @loader = Replicate::Loader.new
   end
 
   def teardown
@@ -139,8 +134,8 @@ class ActiveRecordTest < Test::Unit::TestCase
     objects = []
     @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
 
+    User.replicate_associations :emails
     rtomayko = User.find_by_login('rtomayko')
-    rtomayko.dump_emails = true
     @dumper.dump rtomayko
 
     assert_equal 4, objects.size
@@ -176,10 +171,10 @@ class ActiveRecordTest < Test::Unit::TestCase
     @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
 
     # dump all users and associated objects and destroy
+    User.replicate_associations :emails
     dumped_users = {}
     %w[rtomayko kneath tmm1].each do |login|
       user = User.find_by_login(login)
-      user.dump_emails = true
       @dumper.dump user
       user.destroy
       dumped_users[login] = user

@@ -7,7 +7,10 @@ module Replicate
     # Mixin for the ActiveRecord instance.
     module DumpMethods
       # Replicate::Dumper calls this method on objects to trigger dumping a
-      # replicant object tuple.
+      # replicant object tuple. The default implementation dumps all belongs_to
+      # associations, then self, then all has_one associations, then any
+      # has_many or has_and_belongs_to_many associations declared with the
+      # replicate_associations macro.
       #
       # dumper - Dumper object whose #write method must be called with the
       #          type, id, and attributes hash.
@@ -17,6 +20,9 @@ module Replicate
         dump_all_association_replicants dumper, :belongs_to
         dumper.write self.class.to_s, id, replicant_attributes, self
         dump_all_association_replicants dumper, :has_one
+        self.class.replicate_associations.each do |association|
+          dump_association_replicants dumper, association
+        end
       end
 
       # Attributes hash used to persist this object. This consists of simply
@@ -117,6 +123,17 @@ module Replicate
       end
     end
 
+    module Macros
+      def replicate_associations(*names)
+        self.replicate_associations += names if names.any?
+        @replicate_associations || superclass.replicate_associations
+      end
+
+      def replicate_associations=(names)
+        @replicate_associations = names.uniq.map { |name| name.to_sym }
+      end
+    end
+
     # Special object used to dump the list of associated ids for a
     # has_and_belongs_to_many association. The object includes attributes for
     # locating the source object and writing the list of ids to the appropriate
@@ -159,5 +176,7 @@ module Replicate
     require 'active_record'
     ::ActiveRecord::Base.send :include, DumpMethods
     ::ActiveRecord::Base.send :extend,  LoadMethods
+    ::ActiveRecord::Base.send :extend,  Macros
+    ::ActiveRecord::Base.replicate_associations = []
   end
 end
