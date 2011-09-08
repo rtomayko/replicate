@@ -5,7 +5,7 @@ module Replicate
   # relationships with other objects.
   module AR
     # Mixin for the ActiveRecord instance.
-    module DumpMethods
+    module InstanceMethods
       # Replicate::Dumper calls this method on objects to trigger dumping a
       # replicant object tuple. The default implementation dumps all belongs_to
       # associations, then self, then all has_one associations, then any
@@ -95,8 +95,40 @@ module Replicate
     end
 
     # Mixin for the ActiveRecord class.
-    module LoadMethods
-      # Load an individual record into the database.
+    module ClassMethods
+      # Set and retrieve list of association names that should be dumped when
+      # objects of this class are dumped. This method may be called multiple
+      # times to add associations.
+      def replicate_associations(*names)
+        self.replicate_associations += names if names.any?
+        @replicate_associations || superclass.replicate_associations
+      end
+
+      # Set the list of association names to dump to the specific set of values.
+      def replicate_associations=(names)
+        @replicate_associations = names.uniq.map { |name| name.to_sym }
+      end
+
+      # Compound key used during load to locate existing objects for update.
+      # When no natural key is defined, objects are created new.
+      #
+      # attribute_names - Macro style setter.
+      def replicate_natural_key(*attribute_names)
+        self.replicate_natural_key = attribute_names if attribute_names.any?
+        @replicate_natural_key || superclass.replicate_natural_key
+      end
+
+      # Set the compound key used to locate existing objects for update when
+      # loading. When not set, loading will always create new records.
+      #
+      # attribute_names - Array of attribute name symbols
+      def replicate_natural_key=(attribute_names)
+        @replicate_natural_key = attribute_names
+      end
+
+      # Load an individual record into the database. If the models defines a
+      # replicate_natural_key then an existing record will be updated if found
+      # instead of a new record being created.
       #
       # type  - Model class name as a String.
       # id    - Primary key id of the record on the dump system. This must be
@@ -105,7 +137,21 @@ module Replicate
       #
       # Returns the ActiveRecord object instance for the new record.
       def load_replicant(type, id, attributes)
-        create_or_update_replicant new, attributes
+        instance = replicate_find_existing_record(attributes) || new
+        create_or_update_replicant instance, attributes
+      end
+
+      # Locate an existing record using the replicate_natural_key attribute
+      # values.
+      #
+      # Returns the existing record if found, nil otherwise.
+      def replicate_find_existing_record(attributes)
+        return if replicate_natural_key.empty?
+        conditions = {}
+        replicate_natural_key.each do |attribute_name|
+          conditions[attribute_name] = attributes[attribute_name.to_s]
+        end
+        find(:first, :conditions => conditions)
       end
 
       # Update an AR object's attributes and persist to the database without
@@ -120,17 +166,6 @@ module Replicate
 
         instance.save false
         [instance.id, instance]
-      end
-    end
-
-    module Macros
-      def replicate_associations(*names)
-        self.replicate_associations += names if names.any?
-        @replicate_associations || superclass.replicate_associations
-      end
-
-      def replicate_associations=(names)
-        @replicate_associations = names.uniq.map { |name| name.to_sym }
       end
     end
 
@@ -174,9 +209,9 @@ module Replicate
 
     # Load active record and install the extension methods.
     require 'active_record'
-    ::ActiveRecord::Base.send :include, DumpMethods
-    ::ActiveRecord::Base.send :extend,  LoadMethods
-    ::ActiveRecord::Base.send :extend,  Macros
+    ::ActiveRecord::Base.send :include, InstanceMethods
+    ::ActiveRecord::Base.send :extend,  ClassMethods
     ::ActiveRecord::Base.replicate_associations = []
+    ::ActiveRecord::Base.replicate_natural_key  = []
   end
 end

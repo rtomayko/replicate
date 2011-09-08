@@ -31,19 +31,25 @@ end
 class User < ActiveRecord::Base
   has_one  :profile, :dependent => :destroy
   has_many :emails,  :dependent => :destroy, :order => 'id'
+
+  replicate_natural_key :login
 end
 
 class Profile < ActiveRecord::Base
   belongs_to :user
+
+  replicate_natural_key :user_id
 end
 
 class Email < ActiveRecord::Base
   belongs_to :user
+
+  replicate_natural_key :user_id, :email
 end
 
 class ActiveRecordTest < Test::Unit::TestCase
   def setup
-    fixtures
+    self.class.fixtures
     ActiveRecord::Base.connection.increment_open_transactions
     ActiveRecord::Base.connection.begin_db_transaction
 
@@ -62,7 +68,7 @@ class ActiveRecordTest < Test::Unit::TestCase
     ActiveRecord::Base.connection.decrement_open_transactions
   end
 
-  def fixtures
+  def self.fixtures
     return if @fixtures
     @fixtures = true
     user = User.create! :login => 'rtomayko'
@@ -202,6 +208,45 @@ class ActiveRecordTest < Test::Unit::TestCase
       user = User.find_by_login(login)
       assert_not_nil user
       assert_not_nil user.profile
+      assert !user.emails.empty?, "#{login} has no emails" if login != 'tmm1'
+    end
+  end
+
+  def test_loading_with_existing_records
+    objects = []
+    @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
+
+    # dump all users and associated objects and destroy
+    User.replicate_associations :emails
+    dumped_users = {}
+    %w[rtomayko kneath tmm1].each do |login|
+      user = User.find_by_login(login)
+      user.profile.update_attribute :name, 'CHANGED'
+      @dumper.dump user
+      dumped_users[login] = user
+    end
+    assert_equal 9, objects.size
+
+    # load everything back up
+    objects.each { |type, id, attrs, obj| @loader.feed type, id, attrs }
+
+    # ensure additional objects were not created
+    assert_equal 3, User.count
+
+    # verify attributes are set perfectly again
+    user = User.find_by_login('rtomayko')
+    assert_equal 'rtomayko', user.login
+    assert_equal dumped_users['rtomayko'].created_at, user.created_at
+    assert_equal dumped_users['rtomayko'].updated_at, user.updated_at
+    assert_equal 'CHANGED', user.profile.name
+    assert_equal 2, user.emails.size
+
+    # make sure everything was recreated
+    %w[rtomayko kneath tmm1].each do |login|
+      user = User.find_by_login(login)
+      assert_not_nil user
+      assert_not_nil user.profile
+      assert_equal 'CHANGED', user.profile.name
       assert !user.emails.empty?, "#{login} has no emails" if login != 'tmm1'
     end
   end
