@@ -2,6 +2,13 @@
 
 Dump and load relational objects between Ruby environments.
 
+The project was started at GitHub to ease the process of getting real production
+data into staging and development environments. We have a custom command that
+uses the replicate machinery to dump entire repository data (including
+associated objects like issues, pull requests, commit comments, etc.) from
+production and load it into the current environment. This is excessively useful
+for troubleshooting issues, support requests, and exception reports.
+
 ## Synopsis
 
 Dumping objects:
@@ -26,6 +33,9 @@ Dumping and loading over SSH:
     $ ssh example.org "$remote_command" |replicate -r config/environment -l
 
 ## ActiveRecord
+
+*NOTE: Replicate has been tested only under ActiveRecord 2.2. Support for
+ActiveRecord 3.x is planned.*
 
 Basic support for dumping and loading ActiveRecord objects is included. When an
 object is dumped, all `belongs_to` and `has_one` associations are automatically
