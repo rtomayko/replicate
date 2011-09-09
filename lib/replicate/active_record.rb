@@ -1,4 +1,5 @@
 require 'active_record'
+require 'active_record/version'
 
 module Replicate
   # ActiveRecord::Base instance methods used to dump replicant objects for the
