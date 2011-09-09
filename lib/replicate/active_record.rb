@@ -254,24 +254,20 @@ module Replicate
 
     # Backport connection.enable_query_cache! for Rails 2.x
     require 'active_record/connection_adapters/abstract/query_cache'
-    if defined?(::ActiveRecord::ConnectionAdapters::QueryCache)
-      query_cache = ::ActiveRecord::ConnectionAdapters::QueryCache
-      if !query_cache.methods.any? { |m| m.to_sym == :enable_query_cache! }
-        query_cache.module_eval do
-          attr_writer :query_cache, :query_cache_enabled
+    query_cache = ::ActiveRecord::ConnectionAdapters::QueryCache
+    if !query_cache.methods.any? { |m| m.to_sym == :enable_query_cache! }
+      query_cache.module_eval do
+        attr_writer :query_cache, :query_cache_enabled
 
-          def enable_query_cache!
-            @query_cache ||= {}
-            @query_cache_enabled = true
-          end
+        def enable_query_cache!
+          @query_cache ||= {}
+          @query_cache_enabled = true
+        end
 
-          def disable_query_cache!
-            @query_cache_enabled = false
-          end
+        def disable_query_cache!
+          @query_cache_enabled = false
         end
       end
-    else
-      warn "ActiveRecord::ConnectionAdapters::QueryCache not defined"
     end
 
     # Load active record and install the extension methods.
