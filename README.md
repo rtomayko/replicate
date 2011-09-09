@@ -18,21 +18,59 @@ Installing:
 
 Dumping objects:
 
-    $ replicate -r config/environment -d 'User.find(1)' > user.dump
+    $ replicate -r config/environment -d "User.find(1)" > user.dump
     ==> dumped 4 total objects:
     Profile        1
     User           1
     UserEmail      2
 
-Loading objects:
+Dumping many objects:
 
-    $ replicate -r config/environment -l < user.dump
-    ==> loaded 4 total objects:
-    Profile        1
-    User           1
-    UserEmail      2
+    $ replicate -r config/environment -d "Repository.find_by_name_with_owner('rtomayko/tilt')" > tilt.dump
+    ==> dumped 1479 total objects:
+    AR::Habtm                   101
+    CommitComment                95
+    Issue                       101
+    IssueComment                427
+    IssueEvent                  308
+    Label                         5
+    Language                     19
+    LanguageName                  1
+    Milestone                     3
+    Organization                  4
+    Profile                      82
+    PullRequest                  44
+    PullRequestReviewComment      8
+    Repository                   20
+    Team                          4
+    TeamMember                    6
+    User                         89
+    UserEmail                   162
 
-Dumping and loading over SSH:
+Loading many objects:
+
+    $ replicate -r config/environment -l < tilt.dump
+    ==> loaded 1479 total objects:
+    AR::Habtm                   101
+    CommitComment                95
+    Issue                       101
+    IssueComment                427
+    IssueEvent                  308
+    Label                         5
+    Language                     19
+    LanguageName                  1
+    Milestone                     3
+    Organization                  4
+    Profile                      82
+    PullRequest                  44
+    PullRequestReviewComment      8
+    Repository                   20
+    Team                          4
+    TeamMember                    6
+    User                         89
+    UserEmail                   162
+
+Dumping and loading over ssh:
 
     $ remote_command="replicate -r /app/config/environment -d 'User.find(1234)'"
     $ ssh example.org "$remote_command" |replicate -r config/environment -l
