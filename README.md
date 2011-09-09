@@ -169,7 +169,7 @@ combined, `attributes` must consist of only string keys and simply typed values.
 Relationships between objects in the stream are managed as follows:
 
  - An object's attributes may encode references to objects that precede it
-   in the stream using a simple tuple format: [:id, 'User', 1234].
+   in the stream using a simple tuple format: `[:id, 'User', 1234]`.
 
  - The dump side ensures that objects are written to the dump stream in
    "reference order" such that when an object A includes a reference attribute
@@ -177,7 +177,7 @@ Relationships between objects in the stream are managed as follows:
 
  - The load side maintains a mapping of ids from the dumping system to the newly
    replicated objects on the loading system. When the loader encounters a
-   reference value [:id, 'User', 1234] in an object's attributes, it converts it
+   reference value `[:id, 'User', 1234]` in an object's attributes, it converts it
    to the load side id value.
 
 Dumping and loading happens in a streaming fashion. There is no limit on the
