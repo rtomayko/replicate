@@ -25,7 +25,9 @@ task :build do
 end
 
 # supported activerecord gem versions
-AR_VERSIONS = %w[2.2.3 2.3.14 3.0.10 3.1.0]
+AR_VERSIONS = []
+AR_VERSIONS << '2.2.3' if RUBY_VERSION < '1.9'
+AR_VERSIONS.concat %w[2.3.14 3.0.10 3.1.0]
 
 desc "Run unit tests under all supported AR versions"
 task 'test:all' => 'setup:all' do
