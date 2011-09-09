@@ -293,4 +293,22 @@ class ActiveRecordTest < Test::Unit::TestCase
     user = User.find_by_login('rtomayko')
     assert_equal dumped_users['rtomayko'].id, user.id
   end
+
+  def test_loader_saves_without_validations
+    # note when a record is saved with validations
+    ran_validations = false
+    User.class_eval { validate { ran_validations = true } }
+
+    # check our assumptions
+    user = User.create(:login => 'defunkt')
+    assert ran_validations, "should run validations here"
+    ran_validations = false
+
+    # load one and verify validations are not run
+    user = nil
+    @loader.listen { |type, id, attrs, obj| user = obj }
+    @loader.feed 'User', 1, 'login' => 'rtomayko'
+    assert_not_nil user
+    assert !ran_validations, 'validations should not run on save'
+  end
 end

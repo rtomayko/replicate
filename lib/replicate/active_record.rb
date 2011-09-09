@@ -175,7 +175,12 @@ module Replicate
           instance.send :write_attribute, key, value
         end
 
-        instance.save false
+        if ActiveRecord::VERSION::MAJOR >= 3
+          instance.save :validate => false
+        else
+          instance.save false
+        end
+
         [instance.id, instance]
       end
     end
