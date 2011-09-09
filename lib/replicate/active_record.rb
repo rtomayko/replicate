@@ -172,7 +172,7 @@ module Replicate
         def instance.callback(*args);end # Rails 2.x hack to disable callbacks.
         attributes.each do |key, value|
           next if key == primary_key and not replicate_id
-          instance.write_attribute key, value
+          instance.send :write_attribute, key, value
         end
 
         instance.save false
