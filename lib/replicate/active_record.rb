@@ -168,20 +168,43 @@ module Replicate
 
       # Update an AR object's attributes and persist to the database without
       # running validations or callbacks.
+      #
+      # Returns the [id, object] tuple for the newly replicated objected.
       def create_or_update_replicant(instance, attributes)
-        def instance.callback(*args);end # Rails 2.x hack to disable callbacks.
+        # write replicated attributes to the instance
         attributes.each do |key, value|
           next if key == primary_key and not replicate_id
           instance.send :write_attribute, key, value
         end
 
-        if ActiveRecord::VERSION::MAJOR >= 3
+        # save the instance bypassing all callbacks and validations
+        replicate_disable_callbacks instance
+        if ::ActiveRecord::VERSION::MAJOR >= 3
           instance.save :validate => false
         else
           instance.save false
         end
 
         [instance.id, instance]
+      end
+
+      # Disable all callbacks on an ActiveRecord::Base instance. Only the
+      # instance is effected. There is no way to re-enable callbacks once
+      # they've been disabled on an object.
+      def replicate_disable_callbacks(instance)
+        if ::ActiveRecord::VERSION::MAJOR >= 3
+          # AR 3.1.x
+          def instance.run_callbacks(*args); yield; end
+
+          # AR 3.0.x
+          def instance._run_save_callbacks(*args); yield; end
+          def instance._run_create_callbacks(*args); yield; end
+          def instance._run_update_callbacks(*args); yield; end
+        else
+          # AR 2.x
+          def instance.callback(*args)
+          end
+        end
       end
     end
 

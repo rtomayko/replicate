@@ -311,4 +311,22 @@ class ActiveRecordTest < Test::Unit::TestCase
     assert_not_nil user
     assert !ran_validations, 'validations should not run on save'
   end
+
+  def test_loader_saves_without_callbacks
+    # note when a record is saved with callbacks
+    callbacks = false
+    User.class_eval { after_save { callbacks = true } }
+
+    # check our assumptions
+    user = User.create(:login => 'defunkt')
+    assert callbacks, "should run callbacks here"
+    callbacks = false
+
+    # load one and verify validations are not run
+    user = nil
+    @loader.listen { |type, id, attrs, obj| user = obj }
+    @loader.feed 'User', 1, 'login' => 'rtomayko'
+    assert_not_nil user
+    assert !callbacks, 'callbacks should not run on save'
+  end
 end
