@@ -46,6 +46,7 @@ class DumperTest < Test::Unit::TestCase
 
   def test_writing_to_io
     io = StringIO.new
+    io.set_encoding 'BINARY' if io.respond_to?(:set_encoding)
     @dumper.marshal_to io
     @dumper.dump object = thing
     data = Marshal.dump(['Replicate::Object', object.id, object.attributes])
