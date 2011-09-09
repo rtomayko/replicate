@@ -10,7 +10,7 @@ module Replicate
   # to safeguard against loading in production.
   def self.production_environment?
     if defined?(Rails) && Rails.respond_to?(:env)
-      Rails.env.to_s = 'production'
+      Rails.env.to_s == 'production'
     elsif defined?(RAILS_ENV)
       RAILS_ENV == 'production'
     elsif ENV['RAILS_ENV']
