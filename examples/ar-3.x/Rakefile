@@ -6,6 +6,6 @@ require File.expand_path('../config/application', __FILE__)
 
 Ar3X::Application.load_tasks
 
-task :db do
-  url = "http://downloads.mysql.com/docs/world.sql.gz"
+task :setup do
+  cp 'db/world.sqlite3', 'db/development.sqlite3'
 end
