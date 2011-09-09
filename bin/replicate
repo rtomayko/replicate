@@ -6,12 +6,14 @@
 #/ expression. The --load form reads dump data from stdin and loads into the
 #/ current environment.
 #/
-#/ Options:
-#/   -r, --require        Require the library. Often used with 'config/environment'.
+#/ Mode selection:
 #/   -d, --dump           Dump the repository and all related objects to stdout.
 #/   -l, --load           Load dump file data from stdin.
-#/   -i, --keep-id        Use replicated ids when loading dump file.
 #/
+#/ Options:
+#/   -r, --require        Require the library. Often used with 'config/environment'.
+#/   -i, --keep-id        Use replicated ids when loading dump file.
+#/   -f, --force          Allow loading in production environments.
 #/   -v, --verbose        Write more status output.
 #/   -q, --quiet          Write less status output.
 $stderr.sync = true
@@ -23,10 +25,12 @@ verbose  = false
 quiet    = false
 keep_id  = false
 out      = $stdout
+force    = false
 
 # parse arguments
 file = __FILE__
 usage = lambda { exec "grep ^#/<'#{file}'|cut -c4-" }
+original_argv = ARGV.dup
 ARGV.options do |opts|
   opts.on("-d", "--dump")      { mode = :dump }
   opts.on("-l", "--load")      { mode = :load }
@@ -34,6 +38,7 @@ ARGV.options do |opts|
   opts.on("-v", "--verbose")   { verbose = true }
   opts.on("-q", "--quiet")     { quiet = true }
   opts.on("-i", "--keep-id")   { keep_id = true }
+  opts.on("--force")           { force = true }
   opts.on_tail("-h", "--help", &usage)
   opts.parse!
 end
@@ -64,9 +69,14 @@ if mode == :dump
 # load mode means we're reading objects from stdin and creating them under
 # the current environment.
 elsif mode == :load
-  Replicate::Loader.new do |loader|
-    loader.log_to $stderr, verbose, quiet
-    loader.read $stdin
+  if Replicate.production_environment? && !force
+    abort "error: refusing to load in production environment\n" +
+          "       manual override: #{File.basename($0)} --force #{original_argv.join(' ')}"
+  else
+    Replicate::Loader.new do |loader|
+      loader.log_to $stderr, verbose, quiet
+      loader.read $stdin
+    end
   end
 
 # mode not set means no -l or -d arg was given. show usage and bail.
