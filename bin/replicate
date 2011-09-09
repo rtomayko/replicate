@@ -10,6 +10,7 @@
 #/   -r, --require        Require the library. Often used with 'config/environment'.
 #/   -d, --dump           Dump the repository and all related objects to stdout.
 #/   -l, --load           Load dump file data from stdin.
+#/   -i, --keep-id        Use replicated ids when loading dump file.
 #/
 #/   -v, --verbose        Write more status output.
 #/   -q, --quiet          Write less status output.
@@ -20,6 +21,7 @@ require 'optparse'
 mode     = nil
 verbose  = false
 quiet    = false
+keep_id  = false
 out      = $stdout
 
 # parse arguments
@@ -31,6 +33,7 @@ ARGV.options do |opts|
   opts.on("-r", "--require=f") { |file| require file }
   opts.on("-v", "--verbose")   { verbose = true }
   opts.on("-q", "--quiet")     { quiet = true }
+  opts.on("-i", "--keep-id")   { keep_id = true }
   opts.on_tail("-h", "--help", &usage)
   opts.parse!
 end
@@ -38,8 +41,9 @@ end
 # load rails environment and replicator lib.
 require 'replicate'
 
-# hack to enable AR query cache
 if defined?(ActiveRecord::Base)
+  ActiveRecord::Base.replicate_id = keep_id
+  # hack to enable AR query cache
   ActiveRecord::ConnectionAdapters::QueryCache.
     send :attr_writer, :query_cache, :query_cache_enabled
   ActiveRecord::Base.connection.send(:query_cache=, {})

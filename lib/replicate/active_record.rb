@@ -126,6 +126,18 @@ module Replicate
         @replicate_natural_key = attribute_names
       end
 
+      # Set or retrieve whether replicated object should keep its original id.
+      # When not set, replicated objects will be created with new id.
+      def replicate_id(boolean=nil)
+        self.replicate_id = boolean unless boolean.nil?
+        @replicate_id.nil? ? superclass.replicate_id : @replicate_id
+      end
+
+      # Set flag for replicating original id.
+      def replicate_id=(boolean)
+        @replicate_id = boolean
+      end
+
       # Load an individual record into the database. If the models defines a
       # replicate_natural_key then an existing record will be updated if found
       # instead of a new record being created.
@@ -158,9 +170,8 @@ module Replicate
       # running validations or callbacks.
       def create_or_update_replicant(instance, attributes)
         def instance.callback(*args);end # Rails 2.x hack to disable callbacks.
-
         attributes.each do |key, value|
-          next if key == primary_key
+          next if key == primary_key and not replicate_id
           instance.write_attribute key, value
         end
 
@@ -213,5 +224,6 @@ module Replicate
     ::ActiveRecord::Base.send :extend,  ClassMethods
     ::ActiveRecord::Base.replicate_associations = []
     ::ActiveRecord::Base.replicate_natural_key  = []
+    ::ActiveRecord::Base.replicate_id           = false
   end
 end

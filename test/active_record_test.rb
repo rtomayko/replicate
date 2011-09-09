@@ -250,4 +250,37 @@ class ActiveRecordTest < Test::Unit::TestCase
       assert !user.emails.empty?, "#{login} has no emails" if login != 'tmm1'
     end
   end
+
+  def test_loading_with_replicating_id
+    objects = []
+    @dumper.listen do |type, id, attrs, obj|
+      objects << [type, id, attrs, obj] if type == 'User'
+    end
+
+    dumped_users = {}
+    %w[rtomayko kneath tmm1].each do |login|
+      user = User.find_by_login(login)
+      @dumper.dump user
+      dumped_users[login] = user
+    end
+    assert_equal 3, objects.size
+
+    User.destroy_all
+    User.replicate_id = false
+
+    # load everything back up
+    objects.each { |type, id, attrs, obj| User.load_replicant type, id, attrs }
+
+    user = User.find_by_login('rtomayko')
+    assert_not_equal dumped_users['rtomayko'].id, user.id
+
+    User.destroy_all
+    User.replicate_id = true
+
+    # load everything back up
+    objects.each { |type, id, attrs, obj| User.load_replicant type, id, attrs }
+
+    user = User.find_by_login('rtomayko')
+    assert_equal dumped_users['rtomayko'].id, user.id
+  end
 end
