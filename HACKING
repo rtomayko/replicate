@@ -1,0 +1,61 @@
+Grab a local clone of rtomayko/replicate:
+
+    git clone git://github.com/rtomayko/replicate.git
+    cd replicate
+
+The default rake task installs the latest supported activerecord
+version to a project local GEM_HOME=./vendor and runs the unit
+tests:
+
+    $ rake
+    installing activerecord-3.1.0 to ./vendor/1.8
+    installing sqlite3 to ./vendor/1.8
+    Using activerecord 3.1.0
+    Loaded suite ...
+    Started
+    ....................
+    Finished in 0.150186 seconds.
+
+    20 tests, 106 assertions, 0 failures, 0 errors
+
+Use `rake test:all' to run tests under all activerecord versions:
+
+    $ rake test:all
+    installing activerecord ~> 2.2.3 to ./vendor
+    installing activerecord ~> 2.3.14 to ./vendor
+    installing activerecord ~> 3.0.10 to ./vendor
+    installing activerecord ~> 3.1.0 to ./vendor
+    ==> testing activerecord ~> 2.2.3
+    Started
+    ....................
+    Finished in 0.119517 seconds.
+
+    20 tests, 106 assertions, 0 failures, 0 errors
+    ==> testing activerecord ~> 2.3.14
+    Started
+    ....................
+    Finished in 0.119517 seconds.
+
+    20 tests, 106 assertions, 0 failures, 0 errors
+    <snip>
+
+rake test:all should always be passing under latest stable MRI
+1.8.7 and MRI 1.9.x.
+
+Running individual test files directly requires setting the
+GEM_HOME environment variable and ensuring ./lib is on the load
+path:
+
+    export GEM_HOME=vendor/1.9 # or 1.8.7
+    ruby -Ilib test/active_record_test.rb
+
+You can also control which activerecord version is used in the
+test with the AR_VERSION environment variable:
+
+    rake setup:all
+    export GEM_HOME=vendor/1.8.7
+    AR_VERSION=3.1.0 ruby -rubygems -Ilib test/active_record_test.rb
+
+If you have something worth sharing, please send a pull request:
+
+    https://github.com/rtomayko/replicate
