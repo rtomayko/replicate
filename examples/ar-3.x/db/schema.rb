@@ -11,16 +11,17 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20110909181231) do
-
-  create_table "cities", :primary_key => "ID", :force => true do |t|
+ActiveRecord::Schema.define(:version => 20110909194842) do
+  create_table "cities", :force => true do |t|
     t.string  "name",         :limit => 35, :default => "", :null => false
     t.string  "country_code", :limit => 3,  :default => "", :null => false
     t.string  "district",     :limit => 20, :default => "", :null => false
     t.integer "population",                 :default => 0,  :null => false
+    t.integer "country_id"
   end
 
-  create_table "countries", :primary_key => "Code", :force => true do |t|
+  create_table "countries", :force => true do |t|
+    t.string  "code",                   :limit => 3,  :default => "",     :null => false
     t.string  "name",                   :limit => 52, :default => "",     :null => false
     t.string  "continent",              :limit => 0,  :default => "Asia", :null => false
     t.string  "region",                 :limit => 26, :default => "",     :null => false
@@ -37,11 +38,11 @@ ActiveRecord::Schema.define(:version => 20110909181231) do
     t.string  "code2",                  :limit => 2,  :default => "",     :null => false
   end
 
-  create_table "countries_languages", :id => false, :force => true do |t|
-    t.string "country_code", :limit => 3,  :default => "",  :null => false
-    t.string "language",     :limit => 30, :default => "",  :null => false
-    t.string "official",     :limit => 0,  :default => "F", :null => false
-    t.float  "percentage",   :limit => 4,  :default => 0.0, :null => false
+  create_table "languages", :force => true do |t|
+    t.integer "country_id"
+    t.string  "country_code", :limit => 3,  :default => "",  :null => false
+    t.string  "language",     :limit => 30, :default => "",  :null => false
+    t.string  "official",     :limit => 0,  :default => "F", :null => false
+    t.float   "percentage",   :limit => 4,  :default => 0.0, :null => false
   end
-
 end
