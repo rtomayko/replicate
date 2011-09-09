@@ -47,8 +47,10 @@ MRI 1.8.7 as well as under MRI 1.9.2.
 To use customization macros in your models, require the replicate library after
 ActiveRecord (in e.g., `config/initializers/libraries.rb`):
 
-    require 'active_record'
-    require 'replicate'
+```ruby
+require 'active_record'
+require 'replicate'
+```
 
 ActiveRecord support works sensibly without customization so this isn't strictly
 necessary to use the `replicate` command. The following sections document the
@@ -66,12 +68,14 @@ database being sucked in. It can be useful to mark specific associations for
 automatic inclusion using the `replicate_associations` macro. For instance,
 to always include `EmailAddress` records belonging to a `User`:
 
-    class User < ActiveRecord::Base
-      belongs_to :profile
-      has_many   :email_addresses
+```ruby
+class User < ActiveRecord::Base
+  belongs_to :profile
+  has_many   :email_addresses
 
-      replicate_associations :email_addresses
-    end
+  replicate_associations :email_addresses
+end
+```
 
 ### Natural Keys
 
@@ -81,18 +85,20 @@ exists with matching attributes. To update existing records instead of
 creating new ones, define a natural key for the model using the `replicate_natural_key`
 macro:
 
-    class User < ActiveRecord::Base
-      belongs_to :profile
-      has_many   :email_addresses
+```ruby
+class User < ActiveRecord::Base
+  belongs_to :profile
+  has_many   :email_addresses
 
-      replicate_natural_key :login
-      replicate_associations :email_addresses
-    end
+  replicate_natural_key :login
+  replicate_associations :email_addresses
+end
 
-    class EmailAddress < ActiveRecord::Base
-      belongs_to :user
-      replicate_natural_key :user_id, :email
-    end
+class EmailAddress < ActiveRecord::Base
+  belongs_to :user
+  replicate_natural_key :user_id, :email
+end
+```
 
 Multiple attribute names may be specified to define a compound key. Foreign key
 column attributes (`user_id`) are often included in natural keys.
@@ -109,14 +115,16 @@ instance, you might want to create files on disk or load information into a
 separate data store any time an object enters the database. The best way to go
 about this currently is to override the model's `load_replicant` class method:
 
-    class User < ActiveRecord::Base
-      def self.load_replicant(type, id, attrs)
-        id, object = super
-        object.register_in_redis
-        object.some_other_callback
-        [id, object]
-      end
-    end
+```ruby
+class User < ActiveRecord::Base
+  def self.load_replicant(type, id, attrs)
+    id, object = super
+    object.register_in_redis
+    object.some_other_callback
+    [id, object]
+  end
+end
+```
 
 This interface will be improved in future versions.
 
@@ -132,15 +140,17 @@ The dump side calls `#dump_replicant(dumper)` on each object. The method must
 call `dumper.write()` with the class name, id, and hash of primitively typed
 attributes for the object:
 
-    class User
-      attr_reader   :id
-      attr_accessor :name, :email
+```ruby
+class User
+  attr_reader   :id
+  attr_accessor :name, :email
 
-      def dump_replicant(dumper)
-        attributes { 'name' => name, 'email' => email }
-        dumper.write self.class, id, attributes
-      end
-    end
+  def dump_replicant(dumper)
+    attributes { 'name' => name, 'email' => email }
+    dumper.write self.class, id, attributes
+  end
+end
+```
 
 ### load_replicant
 
@@ -148,15 +158,17 @@ The load side calls `::load_replicant(type, id, attributes)` on the class to
 load each object into the current environment. The method must return an
 `[id, object]` tuple:
 
-    class User
-      def self.load_replicant(type, id, attributes)
-        user = User.new
-        user.name  = attributes['name']
-        user.email = attributes['email']
-        user.save!
-        [user.id, user]
-      end
-    end
+```ruby
+class User
+  def self.load_replicant(type, id, attributes)
+    user = User.new
+    user.name  = attributes['name']
+    user.email = attributes['email']
+    user.save!
+    [user.id, user]
+  end
+end
+```
 
 How it works
 ------------
