@@ -43,16 +43,12 @@ ARGV.options do |opts|
   opts.parse!
 end
 
-# load rails environment and replicator lib.
+# load replicate lib and setup AR
 require 'replicate'
-
 if defined?(ActiveRecord::Base)
+  Replicate::AR
   ActiveRecord::Base.replicate_id = keep_id
-  # hack to enable AR query cache
-  ActiveRecord::ConnectionAdapters::QueryCache.
-    send :attr_writer, :query_cache, :query_cache_enabled
-  ActiveRecord::Base.connection.send(:query_cache=, {})
-  ActiveRecord::Base.connection.send(:query_cache_enabled=, true)
+  ActiveRecord::Base.connection.enable_query_cache!
 end
 
 # dump mode means we're reading records from the database here and writing to

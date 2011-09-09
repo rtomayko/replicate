@@ -1,3 +1,5 @@
+require 'active_record'
+
 module Replicate
   # ActiveRecord::Base instance methods used to dump replicant objects for the
   # record and all 1:1 associations. This module implements the replicant_id
@@ -209,6 +211,7 @@ module Replicate
           end
         end
       end
+
     end
 
     # Special object used to dump the list of associated ids for a
@@ -249,8 +252,29 @@ module Replicate
       end
     end
 
+    # Backport connection.enable_query_cache! for Rails 2.x
+    require 'active_record/connection_adapters/abstract/query_cache'
+    if defined?(::ActiveRecord::ConnectionAdapters::QueryCache)
+      query_cache = ::ActiveRecord::ConnectionAdapters::QueryCache
+      if !query_cache.methods.any? { |m| m.to_sym == :enable_query_cache! }
+        query_cache.module_eval do
+          attr_writer :query_cache, :query_cache_enabled
+
+          def enable_query_cache!
+            @query_cache ||= {}
+            @query_cache_enabled = true
+          end
+
+          def disable_query_cache!
+            @query_cache_enabled = false
+          end
+        end
+      end
+    else
+      warn "ActiveRecord::ConnectionAdapters::QueryCache not defined"
+    end
+
     # Load active record and install the extension methods.
-    require 'active_record'
     ::ActiveRecord::Base.send :include, InstanceMethods
     ::ActiveRecord::Base.send :extend,  ClassMethods
     ::ActiveRecord::Base.replicate_associations = []
