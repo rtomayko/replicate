@@ -11,3 +11,8 @@ task :test do
   ENV['RUBYLIB'] = ['lib', ENV['RUBYLIB']].compact.join(':')
   sh "testrb test/*_test.rb", :verbose => false
 end
+
+desc "Build gem"
+task :build do
+  sh "gem build replicate.gemspec"
+end
