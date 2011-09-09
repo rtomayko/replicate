@@ -1,15 +1,13 @@
 require 'rake/clean'
 task :default => [:setup, :test]
 
-vendor_dir = File.expand_path('../vendor', __FILE__)
+vendor_dir = './vendor'
 ENV['GEM_HOME'] = vendor_dir
 
 desc "Install gem dependencies for development"
-task :setup => '.bundle/config'
-file '.bundle/config' => %w[Gemfile replicate.gemspec] do |f|
-  sh "bundle install --path='#{vendor_dir}'"
+task :setup => 'setup:latest' do
+  verbose(false) { gem_install 'sqlite3' }
 end
-CLEAN.include 'Gemfile.lock', '.bundle'
 
 desc "Run tests"
 task :test do
@@ -29,27 +27,41 @@ AR_VERSIONS = %w[2.2.3 2.3.14 3.0.10 3.1.0]
 
 desc "Run unit tests under all supported AR versions"
 task 'test:all' => 'setup:all' do
-  failures = false
+  failures = []
   AR_VERSIONS.each do |vers|
     warn "==> testing activerecord ~> #{vers}"
     ENV['AR_VERSION'] = vers
-    ok = system("rake test")
-    failures = true if !ok
+    ok = system("rake -s test")
+    failures << vers if !ok
     warn ''
   end
-  fail "test failures detected" if failures
+  fail "activerecord version failures: #{failures.join(', ')}" if failures.any?
 end
 
-# install GEM_HOME with various activerecord versions under ./vendor
-task 'setup:all' do
-  AR_VERSIONS.each do |vers|
-    version_file = "#{vendor_dir}/versions/#{vers}"
-    next if File.exist?(version_file)
-    warn "installing activerecord ~> #{vers} to ./vendor"
-    sh "gem install -q -V --no-rdoc --no-ri activerecord -v '~> #{vers}' >/dev/null", :verbose => false
-    mkdir_p File.dirname(version_file)
-    File.open(version_file, 'wb') {}
+# file tasks for installing each AR version
+AR_VERSIONS.each do |vers|
+  version_file = "#{vendor_dir}/versions/activerecord-#{vers}"
+  file version_file do |f|
+    verbose false do
+      gem_install 'activerecord', vers
+    end
   end
+  task "setup:#{vers}" => version_file
+  task "setup:all"     => "setup:#{vers}"
 end
+task "setup:latest" => "setup:#{AR_VERSIONS.last}"
 CLEAN.include 'vendor'
 
+# Install a gem to the local GEM_HOME but only if it isn't already installed
+def gem_install(name, version = nil)
+  version_name = [name, version].compact.join('-')
+  version_file = "vendor/versions/#{version_name}"
+  return if File.exist?(version_file)
+  warn "installing #{version_name} to ./vendor"
+  command = "gem install --no-rdoc --no-ri #{name}"
+  command += " -v '~> #{version}'" if version
+  command += " >/dev/null"
+  sh command
+  mkdir_p File.dirname(version_file)
+  File.open(version_file, 'wb') { }
+end

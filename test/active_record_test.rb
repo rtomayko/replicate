@@ -2,14 +2,11 @@ require 'test/unit'
 require 'stringio'
 
 # require a specific AR version.
-if version = ENV['AR_VERSION']
-  gem 'activerecord', "~> #{version}"
-  require 'active_record'
-  require 'active_record/version'
-  warn "Using activerecord #{ActiveRecord::VERSION::STRING} (~> #{version})"
-else
-  require 'active_record'
-end
+version = ENV['AR_VERSION']
+gem 'activerecord', "~> #{version}" if version
+require 'active_record'
+require 'active_record/version'
+warn "Using activerecord #{ActiveRecord::VERSION::STRING}"
 
 # replicate must be loaded after AR
 require 'replicate'
