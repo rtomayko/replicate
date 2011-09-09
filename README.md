@@ -37,31 +37,6 @@ Dumping and loading over SSH:
     $ remote_command="replicate -r /app/config/environment -d 'User.find(1234)'"
     $ ssh example.org "$remote_command" |replicate -r config/environment -l
 
-How it works
-------------
-
-The dump format is designed for streaming relational data. Each object is
-encoded as a `[type, id, attributes]` tuple and marshalled directly onto the
-stream. The `type` (class name string) and `id` must form a distinct key when
-combined, `attributes` must consist of only string keys and simply typed values.
-
-Relationships between objects in the stream are managed as follows:
-
- - An object's attributes may encode references to objects that precede it
-   in the stream using a simple tuple format: [:id, 'User', 1234].
-
- - The dump side ensures that objects are written to the dump stream in
-   "reference order" such that when an object A includes a reference attribute
-   to an object B, B is guaranteed to arrive before A.
-
- - The load side maintains a mapping of ids from the dumping system to the newly
-   replicated objects on the loading system. When the loader encounters a
-   reference value [:id, 'User', 1234] in an object's attributes, it converts it
-   to the load side id value.
-
-Dumping and loading happens in a streaming fashion. There is no limit on the
-number of objects included in the stream.
-
 ActiveRecord
 ------------
 
@@ -182,3 +157,28 @@ load each object into the current environment. The method must return an
         [user.id, user]
       end
     end
+
+How it works
+------------
+
+The dump format is designed for streaming relational data. Each object is
+encoded as a `[type, id, attributes]` tuple and marshalled directly onto the
+stream. The `type` (class name string) and `id` must form a distinct key when
+combined, `attributes` must consist of only string keys and simply typed values.
+
+Relationships between objects in the stream are managed as follows:
+
+ - An object's attributes may encode references to objects that precede it
+   in the stream using a simple tuple format: [:id, 'User', 1234].
+
+ - The dump side ensures that objects are written to the dump stream in
+   "reference order" such that when an object A includes a reference attribute
+   to an object B, B is guaranteed to arrive before A.
+
+ - The load side maintains a mapping of ids from the dumping system to the newly
+   replicated objects on the loading system. When the loader encounters a
+   reference value [:id, 'User', 1234] in an object's attributes, it converts it
+   to the load side id value.
+
+Dumping and loading happens in a streaming fashion. There is no limit on the
+number of objects included in the stream.
