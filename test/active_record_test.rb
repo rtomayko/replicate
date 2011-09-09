@@ -329,4 +329,24 @@ class ActiveRecordTest < Test::Unit::TestCase
     assert_not_nil user
     assert !callbacks, 'callbacks should not run on save'
   end
+
+  def test_loader_saves_without_updating_created_at_timestamp
+    timestamp = Time.at((Time.now - (24 * 60 * 60)).to_i)
+    user = nil
+    @loader.listen { |type, id, attrs, obj| user = obj }
+    @loader.feed 'User', 23, 'login' => 'brianmario', 'created_at' => timestamp
+    assert_equal timestamp, user.created_at
+    user = User.find(user.id)
+    assert_equal timestamp, user.created_at
+  end
+
+  def test_loader_saves_without_updating_updated_at_timestamp
+    timestamp = Time.at((Time.now - (24 * 60 * 60)).to_i)
+    user = nil
+    @loader.listen { |type, id, attrs, obj| user = obj }
+    @loader.feed 'User', 29, 'login' => 'rtomayko', 'updated_at' => timestamp
+    assert_equal timestamp, user.updated_at
+    user = User.find(user.id)
+    assert_equal timestamp, user.updated_at
+  end
 end

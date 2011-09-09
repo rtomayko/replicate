@@ -204,6 +204,9 @@ module Replicate
           # AR 2.x
           def instance.callback(*args)
           end
+          def instance.record_timestamps
+            false
+          end
         end
       end
     end
