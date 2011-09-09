@@ -2,17 +2,18 @@ Gem::Specification.new do |s|
   s.specification_version = 2 if s.respond_to? :specification_version=
 
   s.name     = 'replicate'
-  s.version  = '1.0'
-  s.date     = '2011-09-08'
-  s.homepage = "http://github.com/rtomayko/replicate/"
+  s.version  = '1.1'
+  s.date     = '2011-09-09'
+  s.homepage = "http://github.com/rtomayko/replicate"
   s.authors  = ["Ryan Tomayko"]
-  s.email    = "r@tomayko.com"
+  s.email    = "ryan@github.com"
 
   s.description = "Dump and load relational objects between Ruby environments."
   s.summary     = s.description
 
   s.files = %w[
     COPYING
+    HACKING
     README.md
     Rakefile
     bin/replicate
