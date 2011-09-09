@@ -1,12 +1,25 @@
 require 'test/unit'
 require 'stringio'
-require 'active_record'
+
+# require a specific AR version.
+if version = ENV['AR_VERSION']
+  gem 'activerecord', "~> #{version}"
+  require 'active_record'
+  require 'active_record/version'
+  warn "Using activerecord #{ActiveRecord::VERSION::STRING} (~> #{version})"
+else
+  require 'active_record'
+end
+
+# replicate must be loaded after AR
 require 'replicate'
 
+# create the sqlite db on disk
 dbfile = File.expand_path('../db', __FILE__)
 File.unlink dbfile if File.exist?(dbfile)
 ActiveRecord::Base.establish_connection(:adapter => "sqlite3", :database => dbfile)
 
+# load schema
 ActiveRecord::Migration.verbose = false
 ActiveRecord::Schema.define do
   create_table "users", :force => true do |t|
@@ -28,25 +41,25 @@ ActiveRecord::Schema.define do
   end
 end
 
+# models
 class User < ActiveRecord::Base
   has_one  :profile, :dependent => :destroy
   has_many :emails,  :dependent => :destroy, :order => 'id'
-
   replicate_natural_key :login
 end
 
 class Profile < ActiveRecord::Base
   belongs_to :user
-
   replicate_natural_key :user_id
 end
 
 class Email < ActiveRecord::Base
   belongs_to :user
-
   replicate_natural_key :user_id, :email
 end
 
+# The test case loads some fixture data once and uses transaction rollback to
+# reset fixture state for each test's setup.
 class ActiveRecordTest < Test::Unit::TestCase
   def setup
     self.class.fixtures

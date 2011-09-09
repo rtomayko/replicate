@@ -23,3 +23,33 @@ desc "Build gem"
 task :build do
   sh "gem build replicate.gemspec"
 end
+
+# supported activerecord gem versions
+AR_VERSIONS = %w[2.2.3 2.3.14 3.0.10 3.1.0]
+
+desc "Run unit tests under all supported AR versions"
+task 'test:all' => 'setup:all' do
+  failures = false
+  AR_VERSIONS.each do |vers|
+    warn "==> testing activerecord ~> #{vers}"
+    ENV['AR_VERSION'] = vers
+    ok = system("rake test")
+    failures = true if !ok
+    warn ''
+  end
+  fail "test failures detected" if failures
+end
+
+# install GEM_HOME with various activerecord versions under ./vendor
+task 'setup:all' do
+  AR_VERSIONS.each do |vers|
+    version_file = "#{vendor_dir}/versions/#{vers}"
+    next if File.exist?(version_file)
+    warn "installing activerecord ~> #{vers} to ./vendor"
+    sh "gem install -q -V --no-rdoc --no-ri activerecord -v '~> #{vers}' >/dev/null", :verbose => false
+    mkdir_p File.dirname(version_file)
+    File.open(version_file, 'wb') {}
+  end
+end
+CLEAN.include 'vendor'
+
