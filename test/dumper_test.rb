@@ -69,4 +69,14 @@ class DumperTest < Test::Unit::TestCase
     end
     assert called
   end
+
+  def test_loading_dump_scripts
+    called = false
+    @dumper.listen do |type, id, attrs, obj|
+      assert !called
+      called = true
+    end
+    @dumper.load_script File.expand_path('../dumpscript.rb', __FILE__)
+    assert called
+  end
 end

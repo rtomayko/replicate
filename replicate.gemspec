@@ -26,6 +26,7 @@ Gem::Specification.new do |s|
     lib/replicate/status.rb
     test/active_record_test.rb
     test/dumper_test.rb
+    test/dumpscript.rb
     test/loader_test.rb
     test/replicate_test.rb
   ]

@@ -1,9 +1,15 @@
 #!/usr/bin/env ruby
-#/        script/replicate [-r <lib>] --dump "<ruby>" > objects.dump
-#/        script/replicate [-r <lib>] --load < objects.dump
-#/ Dump and load objects between environments. The --dump form writes to stdout
-#/ the objects returned by evaluating "<ruby>", which must be a valid Ruby
-#/ expression. The --load form reads dump data from stdin and loads into the
+#/ Usage: replicate --dump dumpscript.rb > objects.dump
+#/        replicate [-r <lib>] --dump "<ruby>" > objects.dump
+#/        replicate [-r <lib>] --load < objects.dump
+#/ Dump and load objects between environments.
+#
+#/ The --dump form writes to stdout the objects dumped by the script or
+#/ ruby expression(s) given. Dump scripts are normal Ruby source files but
+#/ must call dump(object) on one or more objects. When a Ruby expression is
+#/ given, all resulting objects are dumped automatically.
+#/
+#/ The --load form reads dump data from stdin and creates objects under the
 #/ current environment.
 #/
 #/ Mode selection:
@@ -55,11 +61,17 @@ end
 # stdout. the database should not be modified at all by this operation.
 if mode == :dump
   usage.call if ARGV.empty? || ARGV[0].empty?
-  objects = eval(ARGV[0])
   Replicate::Dumper.new do |dumper|
     dumper.marshal_to out
     dumper.log_to $stderr, verbose, quiet
-    dumper.dump objects
+    ARGV.each do |code|
+      if File.exist?(code)
+        dumper.load_script code
+      else
+        objects = dumper.instance_eval(code, '<argv>', 0)
+        dumper.dump objects
+      end
+    end
   end
 
 # load mode means we're reading objects from stdin and creating them under

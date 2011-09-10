@@ -49,6 +49,13 @@ module Replicate
       use Replicate::Status, 'dump', out, verbose, quiet
     end
 
+    # Load a dump script. This just evals the source of the file in the context
+    # of the dumper. Dump scripts are useful when you want to dump a lot of
+    # stuff.
+    def load_script(file)
+      instance_eval File.read(file), file, 0
+    end
+
     # Dump one or more objects to the internal array or provided dump
     # stream. This method guarantees that the same object will not be dumped
     # more than once.
