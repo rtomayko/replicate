@@ -52,7 +52,7 @@ end
 # load replicate lib and setup AR
 require 'replicate'
 if defined?(ActiveRecord::Base)
-  Replicate::AR
+  require 'replicate/active_record'
   ActiveRecord::Base.replicate_id = keep_id
   ActiveRecord::Base.connection.enable_query_cache!
 end
