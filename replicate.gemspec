@@ -2,8 +2,8 @@ Gem::Specification.new do |s|
   s.specification_version = 2 if s.respond_to? :specification_version=
 
   s.name     = 'replicate'
-  s.version  = '1.2'
-  s.date     = '2011-09-09'
+  s.version  = '1.3'
+  s.date     = '2011-09-10'
   s.homepage = "http://github.com/rtomayko/replicate"
   s.authors  = ["Ryan Tomayko"]
   s.email    = "ryan@github.com"
