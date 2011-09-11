@@ -27,7 +27,7 @@ module Replicate
     end
 
     def normal_log(type, id, attrs, object)
-      @out.write "  %sing: %4d objects" % [@prefix, @count]
+      @out.write "  %sing: %4d objects    \r" % [@prefix, @count]
     end
 
     def complete
