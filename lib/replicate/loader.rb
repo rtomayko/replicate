@@ -71,7 +71,7 @@ module Replicate
     # Returns the new object instance.
     def load(type, id, attributes)
       model_class = constantize(type)
-      translate_ids attributes
+      translate_ids type, id, attributes
       begin
         new_id, instance = model_class.load_replicant(type, id, attributes)
       rescue => boom
@@ -91,16 +91,17 @@ module Replicate
     #       ... }
     # These values are translated to local system ids. All object
     # references must be loaded prior to the referencing object.
-    def translate_ids(attributes)
+    def translate_ids(type, id, attributes)
       attributes.each do |key, value|
         next unless value.is_a?(Array) && value[0] == :id
-        type, value = value[1].to_s, value[2]
+        referenced_type, value = value[1].to_s, value[2]
         local_ids =
           Array(value).map do |remote_id|
-            if local_id = @keymap[type][remote_id]
+            if local_id = @keymap[referenced_type][remote_id]
               local_id
             else
-              warn "error: #{type} #{remote_id} missing from keymap"
+              warn "warn: #{referenced_type}(#{remote_id}) not in keymap, " +
+                   "referenced by #{type}(#{id})##{key}"
             end
           end
         if value.is_a?(Array)
