@@ -12,21 +12,43 @@ concepts.
 Synopsis
 --------
 
-Installing:
+### Installing
 
     $ gem install replicate
 
-Dumping objects:
+### Dumping objects
 
-    $ replicate -r config/environment -d "User.find(1)" > user.dump
+Evaluate a Ruby expression, dumping all resulting to standard output:
+
+    $ replicate -r ./config/environment -d "User.find(1)" > user.dump
     ==> dumped 4 total objects:
     Profile        1
     User           1
     UserEmail      2
 
-Dumping many objects:
+The `-r ./config/environment` option is used to require environment setup and
+model instantiation code needed by the ruby expression.
 
-    $ replicate -r config/environment -d "Repository.find_by_name_with_owner('rtomayko/tilt')" > tilt.dump
+### Dumping many objects with a dump script
+
+Dump scripts are normal ruby source files evaluated in the context of the
+dumper. The `dump(object)` method is used to put objects into the dump stream.
+
+```ruby
+# config/replicate/dump-stuff.rb
+require 'config/environment'
+
+%w[rtomayko/tilt rtomayko/bcat].each do |repo_name|
+  repo = Repository.find_by_name_with_owner(repo_name)
+  dump repo
+  dump repo.commit_comments
+  dump repo.issues
+end
+```
+
+Run the dump script:
+
+    $ replicate -d config/replicate/dump-stuff.rb > repos.dump
     ==> dumped 1479 total objects:
     AR::Habtm                   101
     CommitComment                95
@@ -47,9 +69,9 @@ Dumping many objects:
     User                         89
     UserEmail                   162
 
-Loading many objects:
+### Loading many objects:
 
-    $ replicate -r config/environment -l < tilt.dump
+    $ replicate -r ./config/environment -l < repos.dump
     ==> loaded 1479 total objects:
     AR::Habtm                   101
     CommitComment                95
@@ -70,10 +92,10 @@ Loading many objects:
     User                         89
     UserEmail                   162
 
-Dumping and loading over ssh:
+### Dumping and loading over ssh
 
     $ remote_command="replicate -r /app/config/environment -d 'User.find(1234)'"
-    $ ssh example.org "$remote_command" |replicate -r config/environment -l
+    $ ssh example.org "$remote_command" |replicate -r ./config/environment -l
 
 ActiveRecord
 ------------
