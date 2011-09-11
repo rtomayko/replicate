@@ -67,6 +67,9 @@ if mode == :dump
     ARGV.each do |code|
       if File.exist?(code)
         dumper.load_script code
+      elsif code == '-'
+        code = $stdin.read
+        objects = dumper.instance_eval(code, '<stdin>', 0)
       else
         objects = dumper.instance_eval(code, '<argv>', 0)
         dumper.dump objects
