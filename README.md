@@ -18,7 +18,7 @@ Synopsis
 
 ### Dumping objects
 
-Evaluate a Ruby expression, dumping all resulting to standard output:
+Evaluate a Ruby expression, dumping all resulting objects to standard output:
 
     $ replicate -r ./config/environment -d "User.find(1)" > user.dump
     ==> dumped 4 total objects:
