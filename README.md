@@ -206,8 +206,8 @@ class User
   attr_accessor :name, :email
 
   def dump_replicant(dumper)
-    attributes { 'name' => name, 'email' => email }
-    dumper.write self.class, id, attributes
+    attributes = { 'name' => name, 'email' => email }
+    dumper.write self.class, id, attributes, User
   end
 end
 ```
