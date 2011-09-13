@@ -21,7 +21,7 @@ module Replicate
       # Returns nothing.
       def dump_replicant(dumper)
         dump_all_association_replicants dumper, :belongs_to
-        dumper.write self.class.to_s, id, replicant_attributes, self
+        dumper.write self.class.to_s, replicant_keymap_key, replicant_attributes, self
         dump_all_association_replicants dumper, :has_one
         self.class.replicate_associations.each do |association|
           dump_association_replicants dumper, association
@@ -49,6 +49,11 @@ module Replicate
       # dumped or not.
       def replicant_id
         [self.class.name, id]
+      end
+
+      # The key for this record to use in the loader keymap.
+      def replicant_keymap_key
+        send(self.class.replicate_keymap_attribute)
       end
 
       # Dump all associations of a given type.
@@ -110,6 +115,30 @@ module Replicate
       # Set the list of association names to dump to the specific set of values.
       def replicate_associations=(names)
         @replicate_associations = names.uniq.map { |name| name.to_sym }
+      end
+
+      # The name of the attribute to use in the loader keymap.
+      # This defaults to :id and does not usually have to be overriden.
+      # You will usually only have to override it if you have an
+      # association with a non-standard foreign key like:
+      #
+      # class WebPage < ActiveRecord::Base
+      #   belongs_to :domain, :foreign_key => "domain_host", :primary_key => "host"
+      # end
+      #
+      # In a case like this, the domain model would need to set
+      # `replicate_keymap_attribute :host` so that the host attribute
+      # gets used in the keymap.
+      def replicate_keymap_attribute(attribute_name = nil)
+        self.replicate_keymap_attribute = attribute_name if attribute_name
+        return @replicate_keymap_attribute if @replicate_keymap_attribute
+        return superclass.replicate_keymap_attribute if superclass.respond_to?(:replicate_keymap_attribute)
+        :id
+      end
+
+      # Set the name of the attribute to use in the loader keymap.
+      def replicate_keymap_attribute=(attribute_name)
+        @replicate_keymap_attribute = attribute_name
       end
 
       # Compound key used during load to locate existing objects for update.
@@ -188,7 +217,7 @@ module Replicate
           instance.save false
         end
 
-        [instance.id, instance]
+        [instance.replicant_keymap_key, instance]
       end
 
       # Disable all callbacks on an ActiveRecord::Base instance. Only the
