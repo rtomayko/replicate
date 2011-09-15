@@ -27,10 +27,7 @@ module Replicate
     end
 
     def normal_log(type, id, attrs, object)
-      message = "  %sing: %4d objects" % [@prefix, @count]
-      dots = '.' * (@count % 50)
-      dots = ' ' * 50 if dots.empty?
-      @out.write "#{message} #{dots}\r"
+      @out.write "  %sing: %4d objects    \r" % [@prefix, @count]
     end
 
     def complete

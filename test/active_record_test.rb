@@ -70,7 +70,6 @@ end
 
 class Domain < ActiveRecord::Base
   replicate_natural_key :host
-  replicate_keymap_attribute :host
 end
 
 # The test case loads some fixture data once and uses transaction rollback to
@@ -158,6 +157,7 @@ class ActiveRecordTest < Test::Unit::TestCase
     objects.each { |type, id, attrs, obj| @loader.feed type, id, attrs }
 
     github_about_page = WebPage.find_by_url('http://github.com/about')
+    assert_equal "github.com", github_about_page.domain_host
     assert_equal "github.com", github_about_page.domain.host
   end
 
