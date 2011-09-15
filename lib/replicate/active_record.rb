@@ -36,9 +36,19 @@ module Replicate
       def replicant_attributes
         attributes = self.attributes.dup
         self.class.reflect_on_all_associations(:belongs_to).each do |reflection|
-          foreign_key = (reflection.options[:foreign_key] || "#{reflection.name}_id").to_s
-          if id = attributes[foreign_key]
-            attributes[foreign_key] = [:id, reflection.klass.to_s, id]
+          klass = reflection.klass
+          options = reflection.options
+          primary_key = (options[:primary_key] || klass.primary_key).to_s
+          foreign_key = (options[:foreign_key] || "#{reflection.name}_id").to_s
+          if primary_key == klass.primary_key
+            if id = attributes[foreign_key]
+              attributes[foreign_key] = [:id, reflection.klass.to_s, id]
+            else
+              # nil value in association reference
+            end
+          else
+            # association uses non-primary-key foreign key. no special key
+            # conversion needed.
           end
         end
         attributes
