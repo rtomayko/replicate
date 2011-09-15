@@ -6,7 +6,8 @@ version = ENV['AR_VERSION']
 gem 'activerecord', "~> #{version}" if version
 require 'active_record'
 require 'active_record/version'
-warn "Using activerecord #{ActiveRecord::VERSION::STRING}"
+version = ActiveRecord::VERSION::STRING
+warn "Using activerecord #{version}"
 
 # replicate must be loaded after AR
 require 'replicate'
@@ -37,13 +38,15 @@ ActiveRecord::Schema.define do
     t.datetime "created_at"
   end
 
-  create_table "domains", :force => true do |t|
-    t.string "host"
-  end
+  if version[0,3] > '2.2'
+    create_table "domains", :force => true do |t|
+      t.string "host"
+    end
 
-  create_table "web_pages", :force => true do |t|
-    t.string "url"
-    t.string "domain_host"
+    create_table "web_pages", :force => true do |t|
+      t.string "url"
+      t.string "domain_host"
+    end
   end
 end
 
@@ -64,12 +67,14 @@ class Email < ActiveRecord::Base
   replicate_natural_key :user_id, :email
 end
 
-class WebPage < ActiveRecord::Base
-  belongs_to :domain, :foreign_key => 'domain_host', :primary_key => 'host'
-end
+if version[0,3] > '2.2'
+  class WebPage < ActiveRecord::Base
+    belongs_to :domain, :foreign_key => 'domain_host', :primary_key => 'host'
+  end
 
-class Domain < ActiveRecord::Base
-  replicate_natural_key :host
+  class Domain < ActiveRecord::Base
+    replicate_natural_key :host
+  end
 end
 
 # The test case loads some fixture data once and uses transaction rollback to
@@ -110,8 +115,10 @@ class ActiveRecordTest < Test::Unit::TestCase
     user = User.create! :login => 'tmm1'
     user.create_profile :name => 'tmm1', :homepage => 'https://github.com/tmm1'
 
-    github = Domain.create! :host => 'github.com'
-    github_about_page = WebPage.create! :url => 'http://github.com/about', :domain => github
+    if defined?(Domain)
+      github = Domain.create! :host => 'github.com'
+      github_about_page = WebPage.create! :url => 'http://github.com/about', :domain => github
+    end
   end
 
   def test_extension_modules_loaded
@@ -142,23 +149,25 @@ class ActiveRecordTest < Test::Unit::TestCase
     assert_equal rtomayko.profile, obj
   end
 
-  def test_dump_and_load_non_standard_foreign_key_association
-    objects = []
-    @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
+  if ActiveRecord::VERSION::STRING[0, 3] > '2.2'
+    def test_dump_and_load_non_standard_foreign_key_association
+      objects = []
+      @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
 
-    github_about_page = WebPage.find_by_url('http://github.com/about')
-    assert_equal "github.com", github_about_page.domain.host
-    @dumper.dump github_about_page
+      github_about_page = WebPage.find_by_url('http://github.com/about')
+      assert_equal "github.com", github_about_page.domain.host
+      @dumper.dump github_about_page
 
-    WebPage.delete_all
-    Domain.delete_all
+      WebPage.delete_all
+      Domain.delete_all
 
-    # load everything back up
-    objects.each { |type, id, attrs, obj| @loader.feed type, id, attrs }
+      # load everything back up
+      objects.each { |type, id, attrs, obj| @loader.feed type, id, attrs }
 
-    github_about_page = WebPage.find_by_url('http://github.com/about')
-    assert_equal "github.com", github_about_page.domain_host
-    assert_equal "github.com", github_about_page.domain.host
+      github_about_page = WebPage.find_by_url('http://github.com/about')
+      assert_equal "github.com", github_about_page.domain_host
+      assert_equal "github.com", github_about_page.domain.host
+    end
   end
 
   def test_auto_dumping_has_one_associations
