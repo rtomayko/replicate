@@ -49,11 +49,16 @@ module Replicate
       use Replicate::Status, 'dump', out, verbose, quiet
     end
 
-    # Load a dump script. This just evals the source of the file in the context
-    # of the dumper. Dump scripts are useful when you want to dump a lot of
-    # stuff.
+    # Load a dump script. This evals the source of the file in the context
+    # of a special object with a #dump method that forwards to this instance.
+    # Dump scripts are useful when you want to dump a lot of stuff. Call the
+    # dump method as many times as necessary to dump all objects.
     def load_script(file)
-      instance_eval File.read(file), file, 0
+      dumper = self
+      object = ::Object.new
+      meta = (class<<object;self;end)
+      meta.send(:define_method, :dump) { |*args| dumper.dump(*args) }
+      object.instance_eval File.read(file), file, 0
     end
 
     # Dump one or more objects to the internal array or provided dump
