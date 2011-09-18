@@ -126,7 +126,7 @@ module Replicate
 
     # Turn a string into an object by traversing constants.
     def constantize(string)
-      namespace = Object
+      namespace = ::Object
       string.split('::').each { |name| namespace = namespace.const_get(name) }
       namespace
     end
