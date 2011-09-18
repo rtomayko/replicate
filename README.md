@@ -207,7 +207,7 @@ class User
 
   def dump_replicant(dumper)
     attributes = { 'name' => name, 'email' => email }
-    dumper.write self.class, id, attributes, User
+    dumper.write self.class, id, attributes, self
   end
 end
 ```
