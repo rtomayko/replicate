@@ -35,6 +35,9 @@ module Replicate
       # version of the same object.
       def replicant_attributes
         attributes = self.attributes.dup
+        self.class.replicate_omit_attributes.each do |omit|
+          attributes.delete(omit.to_s)
+        end
         self.class.reflect_on_all_associations(:belongs_to).each do |reflection|
           klass = reflection.klass
           options = reflection.options
@@ -69,6 +72,7 @@ module Replicate
       # Returns nothing.
       def dump_all_association_replicants(dumper, association_type)
         self.class.reflect_on_all_associations(association_type).each do |reflection|
+          next if self.class.replicate_omit_attributes.include?(reflection.name)
           next if (dependent = __send__(reflection.name)).nil?
           case dependent
           when ActiveRecord::Base, Array
@@ -149,6 +153,23 @@ module Replicate
       # Set flag for replicating original id.
       def replicate_id=(boolean)
         @replicate_id = boolean
+      end
+
+      # Set which, if any, attributes should not be dumped. Also works for
+      # associations.
+      #
+      # attribute_names - Macro style setter.
+      def replicate_omit_attributes(*attribute_names)
+        self.replicate_omit_attributes = attribute_names if attribute_names.any?
+        @replicate_omit_attributes || superclass.replicate_omit_attributes
+      end
+
+      # Set which, if any, attributes should not be dumped. Also works for
+      # associations.
+      # 
+      # attribute_names - Array of attribute name symbols
+      def replicate_omit_attributes=(attribute_names)
+        @replicate_omit_attributes = attribute_names
       end
 
       # Load an individual record into the database. If the models defines a
@@ -286,6 +307,7 @@ module Replicate
     ::ActiveRecord::Base.send :extend,  ClassMethods
     ::ActiveRecord::Base.replicate_associations = []
     ::ActiveRecord::Base.replicate_natural_key  = []
+    ::ActiveRecord::Base.replicate_omit_attributes  = []
     ::ActiveRecord::Base.replicate_id           = false
   end
 end

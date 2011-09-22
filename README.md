@@ -163,6 +163,21 @@ end
 Multiple attribute names may be specified to define a compound key. Foreign key
 column attributes (`user_id`) are often included in natural keys.
 
+### Omission of attributes and associations
+
+You might want to exclude some attributes or associations from being dumped. For
+this, use the replicate_omit_attributes macro:
+
+```ruby
+class User < ActiveRecord::Base
+  has_one    :profile
+
+  replicate_omit_attributes :created_at, :profile
+end
+```
+
+You can omit belongs_to associations by omitting the foreign key column.
+
 ### Validations and Callbacks
 
 __IMPORTANT:__ All ActiveRecord validations and callbacks are disabled on the
