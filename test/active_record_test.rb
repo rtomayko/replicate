@@ -149,6 +149,34 @@ class ActiveRecordTest < Test::Unit::TestCase
     assert_equal rtomayko.profile, obj
   end
 
+  def test_omit_dumping_of_attribute
+    objects = []
+    @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
+
+    User.replicate_omit_attributes :created_at
+    rtomayko = User.find_by_login('rtomayko')
+    @dumper.dump rtomayko
+
+    assert_equal 2, objects.size
+
+    type, id, attrs, obj = objects.shift
+    assert_equal nil, attrs['created_at']
+  end
+
+  def test_omit_dumping_of_association
+    objects = []
+    @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
+
+    User.replicate_omit_attributes :profile
+    rtomayko = User.find_by_login('rtomayko')
+    @dumper.dump rtomayko
+
+    assert_equal 1, objects.size
+
+    type, id, attrs, obj = objects.shift
+    assert_equal 'User', type
+  end
+
   if ActiveRecord::VERSION::STRING[0, 3] > '2.2'
     def test_dump_and_load_non_standard_foreign_key_association
       objects = []
