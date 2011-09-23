@@ -38,7 +38,9 @@ module Replicate
         self.class.replicate_omit_attributes.each do |omit|
           attributes.delete(omit.to_s)
         end
-        self.class.reflect_on_all_associations(:belongs_to).each do |reflection|
+        self.class.reflect_on_all_associations(:belongs_to).select {|association|
+          association.options[:polymorphic] != true
+        }.each do |reflection|
           klass = reflection.klass
           options = reflection.options
           primary_key = (options[:primary_key] || klass.primary_key).to_s
