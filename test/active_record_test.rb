@@ -47,6 +47,10 @@ ActiveRecord::Schema.define do
       t.string "url"
       t.string "domain_host"
     end
+
+    create_table "notes", :force => true do |t|
+      t.integer "notable_id"
+    end
   end
 end
 
@@ -54,6 +58,7 @@ end
 class User < ActiveRecord::Base
   has_one  :profile, :dependent => :destroy
   has_many :emails,  :dependent => :destroy, :order => 'id'
+  has_many :notes,   :as => :notable
   replicate_natural_key :login
 end
 
@@ -75,6 +80,10 @@ if version[0,3] > '2.2'
   class Domain < ActiveRecord::Base
     replicate_natural_key :host
   end
+end
+
+class Note < ActiveRecord::Base
+  belongs_to :notable, :polymorphic => true
 end
 
 # The test case loads some fixture data once and uses transaction rollback to
@@ -220,6 +229,31 @@ class ActiveRecordTest < Test::Unit::TestCase
     assert_equal 'Ryan Tomayko', attrs['name']
     assert_equal [:id, 'User', rtomayko.id], attrs['user_id']
     assert_equal rtomayko.profile, obj
+  end
+
+  def test_auto_dumping_does_not_fail_on_polymorphic_associations
+    objects = []
+    @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
+
+    rtomayko = User.find_by_login('rtomayko')
+    note = Note.create!(:notable => rtomayko)
+    @dumper.dump note
+
+    assert_equal 3, objects.size
+
+    type, id, attrs, obj = objects.shift
+    assert_equal 'User', type
+    assert_equal rtomayko.id, id
+
+    type, id, attrs, obj = objects.shift
+    assert_equal 'Profile', type
+
+    type, id, attrs, obj = objects.shift
+    assert_equal 'Note', type
+    assert_equal note.id, id
+    assert_equal note.notable_type, attrs['notable_type']
+    assert_equal attrs["notable_id"], rtomayko.id
+    assert_equal note, obj
   end
 
   def test_dumping_has_many_associations
