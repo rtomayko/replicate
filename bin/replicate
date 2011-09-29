@@ -23,7 +23,7 @@
 #/   -v, --verbose        Write more status output.
 #/   -q, --quiet          Write less status output.
 $stderr.sync = true
-$stdout = File.new('/dev/null', 'w')
+$stdout = $stderr
 
 require 'optparse'
 
