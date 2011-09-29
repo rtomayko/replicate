@@ -23,6 +23,8 @@
 #/   -v, --verbose        Write more status output.
 #/   -q, --quiet          Write less status output.
 $stderr.sync = true
+$stdout = File.new('/dev/null', 'w')
+
 require 'optparse'
 
 # default options
@@ -30,7 +32,7 @@ mode     = nil
 verbose  = false
 quiet    = false
 keep_id  = false
-out      = $stdout
+out      = STDOUT
 force    = false
 
 # parse arguments
