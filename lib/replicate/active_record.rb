@@ -154,6 +154,7 @@ module Replicate
 
       # Set flag for replicating original id.
       def replicate_id=(boolean)
+        self.replicate_natural_key = [:id] if boolean
         @replicate_id = boolean
       end
 
@@ -168,7 +169,7 @@ module Replicate
 
       # Set which, if any, attributes should not be dumped. Also works for
       # associations.
-      # 
+      #
       # attribute_names - Array of attribute name symbols
       def replicate_omit_attributes=(attribute_names)
         @replicate_omit_attributes = attribute_names
