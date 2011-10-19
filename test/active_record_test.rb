@@ -47,10 +47,10 @@ ActiveRecord::Schema.define do
       t.string "url"
       t.string "domain_host"
     end
+  end
 
-    create_table "notes", :force => true do |t|
-      t.integer "notable_id"
-    end
+  create_table "notes", :force => true do |t|
+    t.integer "notable_id"
   end
 end
 
