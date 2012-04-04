@@ -38,16 +38,24 @@ module Replicate
         self.class.replicate_omit_attributes.each do |omit|
           attributes.delete(omit.to_s)
         end
-        self.class.reflect_on_all_associations(:belongs_to).select {|association|
-          association.options[:polymorphic] != true
-        }.each do |reflection|
-          klass = reflection.klass
+        self.class.reflect_on_all_associations(:belongs_to).each do |reflection|
           options = reflection.options
-          primary_key = (options[:primary_key] || klass.primary_key).to_s
-          foreign_key = (options[:foreign_key] || "#{reflection.name}_id").to_s
+          if options[:polymorphic]
+            if ::ActiveRecord::VERSION::MAJOR == 3 && ::ActiveRecord::VERSION::MINOR > 0
+              klass = Kernel.const_get(attributes[reflection.foreign_type])
+            else
+              klass = Kernel.const_get(attributes[options[:foreign_type]])
+            end
+            primary_key = klass.primary_key
+            foreign_key = "#{reflection.name}_id"
+          else
+            klass = reflection.klass
+            primary_key = (options[:primary_key] || klass.primary_key).to_s
+            foreign_key = (options[:foreign_key] || "#{reflection.name}_id").to_s
+          end
           if primary_key == klass.primary_key
             if id = attributes[foreign_key]
-              attributes[foreign_key] = [:id, reflection.klass.to_s, id]
+              attributes[foreign_key] = [:id, klass.to_s, id]
             else
               # nil value in association reference
             end

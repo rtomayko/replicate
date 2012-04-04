@@ -51,6 +51,7 @@ ActiveRecord::Schema.define do
 
   create_table "notes", :force => true do |t|
     t.integer "notable_id"
+    t.string  "notable_type"
   end
 end
 
@@ -252,7 +253,7 @@ class ActiveRecordTest < Test::Unit::TestCase
     assert_equal 'Note', type
     assert_equal note.id, id
     assert_equal note.notable_type, attrs['notable_type']
-    assert_equal attrs["notable_id"], rtomayko.id
+    assert_equal attrs["notable_id"], [:id, 'User', rtomayko.id]
     assert_equal note, obj
   end
 
@@ -290,6 +291,38 @@ class ActiveRecordTest < Test::Unit::TestCase
     assert_equal 'rtomayko@gmail.com', attrs['email']
     assert_equal [:id, 'User', rtomayko.id], attrs['user_id']
     assert_equal rtomayko.emails.last, obj
+  end
+  
+  def test_dumping_polymorphic_associations
+    objects = []
+    @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
+
+    User.replicate_associations :notes
+    rtomayko = User.find_by_login('rtomayko')
+    note = Note.create!(:notable => rtomayko)
+    @dumper.dump rtomayko
+
+    assert_equal 3, objects.size
+
+    type, id, attrs, obj = objects.shift
+    assert_equal 'User', type
+    assert_equal rtomayko.id, id
+    assert_equal 'rtomayko', attrs['login']
+    assert_equal rtomayko.created_at, attrs['created_at']
+    assert_equal rtomayko, obj
+
+    type, id, attrs, obj = objects.shift
+    assert_equal 'Profile', type
+    assert_equal rtomayko.profile.id, id
+    assert_equal 'Ryan Tomayko', attrs['name']
+    assert_equal rtomayko.profile, obj
+
+    type, id, attrs, obj = objects.shift
+    assert_equal 'Note', type
+    assert_equal note.notable_type, attrs['notable_type']
+    assert_equal [:id, 'User', rtomayko.id], attrs['notable_id']
+    assert_equal rtomayko.notes.first, obj
+   
   end
 
   def test_loading_everything
