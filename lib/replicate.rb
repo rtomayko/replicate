@@ -16,7 +16,7 @@ module Replicate
     elsif ENV['RAILS_ENV']
       ENV['RAILS_ENV'] == 'production'
     elsif ENV['RACK_ENV']
-      ENV['RAILS_ENV'] == 'production'
+      ENV['RACK_ENV'] == 'production'
     end
   end
 
