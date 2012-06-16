@@ -292,7 +292,7 @@ class ActiveRecordTest < Test::Unit::TestCase
     assert_equal [:id, 'User', rtomayko.id], attrs['user_id']
     assert_equal rtomayko.emails.last, obj
   end
-  
+
   def test_dumping_polymorphic_associations
     objects = []
     @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
@@ -322,8 +322,24 @@ class ActiveRecordTest < Test::Unit::TestCase
     assert_equal note.notable_type, attrs['notable_type']
     assert_equal [:id, 'User', rtomayko.id], attrs['notable_id']
     assert_equal rtomayko.notes.first, obj
-   
+
   end
+
+  def test_dumping_empty_polymorphic_associations
+    objects = []
+    @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
+
+    note = Note.create!()
+    @dumper.dump note
+
+    assert_equal 1, objects.size
+
+    type, id, attrs, obj = objects.shift
+    assert_equal 'Note', type
+    assert_equal nil, attrs['notable_type']
+    assert_equal nil, attrs['notable_id']
+  end
+
 
   def test_loading_everything
     objects = []

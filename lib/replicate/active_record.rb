@@ -42,10 +42,13 @@ module Replicate
           options = reflection.options
           if options[:polymorphic]
             if ::ActiveRecord::VERSION::MAJOR == 3 && ::ActiveRecord::VERSION::MINOR > 0
-              klass = Kernel.const_get(attributes[reflection.foreign_type])
+              reference_class = attributes[reflection.foreign_type]
             else
-              klass = Kernel.const_get(attributes[options[:foreign_type]])
+              reference_class = attributes[options[:foreign_type]]
             end
+            next if reference_class.nil?
+
+            klass = Kernel.const_get(reference_class)
             primary_key = klass.primary_key
             foreign_key = "#{reflection.name}_id"
           else
