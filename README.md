@@ -137,6 +137,12 @@ class User < ActiveRecord::Base
 end
 ```
 
+You may also do this by passing an option in your dump script:
+
+```ruby
+dump User.all, :associations => [:email_addresses]
+```
+
 ### Natural Keys
 
 By default, the loader attempts to create a new record with a new primary key id
@@ -178,6 +184,12 @@ end
 
 You can omit belongs_to associations by omitting the foreign key column.
 
+You may also do this by passing an option in your dump script:
+
+```ruby
+dump User.all, :omit => [:profile]
+```
+
 ### Validations and Callbacks
 
 __IMPORTANT:__ All ActiveRecord validations and callbacks are disabled on the
@@ -211,7 +223,7 @@ the `dump_replicant` and `load_replicant` methods.
 
 ### dump_replicant
 
-The dump side calls `#dump_replicant(dumper)` on each object. The method must
+The dump side calls `#dump_replicant(dumper, opts={})` on each object. The method must
 call `dumper.write()` with the class name, id, and hash of primitively typed
 attributes for the object:
 
@@ -220,7 +232,7 @@ class User
   attr_reader   :id
   attr_accessor :name, :email
 
-  def dump_replicant(dumper)
+  def dump_replicant(dumper, opts={})
     attributes = { 'name' => name, 'email' => email }
     dumper.write self.class, id, attributes, self
   end
