@@ -326,7 +326,7 @@ class ActiveRecordTest < Test::Unit::TestCase
     objects = []
     @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
 
-    users = User.where(:login => %w[rtomayko kneath])
+    users = User.all(:conditions => {:login => %w[rtomayko kneath]})
     @dumper.dump users, :associations => [:emails], :omit => [:profile]
 
     assert_equal 5, objects.size
