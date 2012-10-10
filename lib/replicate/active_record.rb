@@ -36,7 +36,7 @@ module Replicate
         (self.class.replicate_associations + @opts[:associations]).uniq
       end
 
-      # List of associations to omit when dumping this object.
+      # List of attributes and associations to omit when dumping this object.
       def omitted_attributes
         (self.class.replicate_omit_attributes + @opts[:omit]).uniq
       end
