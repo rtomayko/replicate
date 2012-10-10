@@ -333,6 +333,19 @@ class ActiveRecordTest < Test::Unit::TestCase
     assert_equal ['Email', 'Email', 'Email', 'User', 'User'], objects.map { |type,_,_| type }.sort
   end
 
+  def test_omit_attributes_at_dump_time
+    objects = []
+    @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
+
+    rtomayko = User.find_by_login('rtomayko')
+    @dumper.dump rtomayko, :omit => [:created_at]
+
+    type, id, attrs, obj = objects.shift
+    assert_equal 'User', type
+    assert attrs['updated_at']
+    assert_nil attrs['created_at']
+  end
+
   def test_dumping_polymorphic_associations
     objects = []
     @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }

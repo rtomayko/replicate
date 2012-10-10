@@ -37,7 +37,7 @@ module Replicate
       end
 
       # List of associations to omit when dumping this object.
-      def omitted_associations
+      def omitted_attributes
         (self.class.replicate_omit_attributes + @opts[:omit]).uniq
       end
 
@@ -48,7 +48,7 @@ module Replicate
       # version of the same object.
       def replicant_attributes
         attributes = self.attributes.dup
-        self.class.replicate_omit_attributes.each do |omit|
+        omitted_attributes.each do |omit|
           attributes.delete(omit.to_s)
         end
         self.class.reflect_on_all_associations(:belongs_to).each do |reflection|
@@ -98,7 +98,7 @@ module Replicate
       # Returns nothing.
       def dump_all_association_replicants(dumper, association_type)
         self.class.reflect_on_all_associations(association_type).each do |reflection|
-          next if omitted_associations.include?(reflection.name)
+          next if omitted_attributes.include?(reflection.name)
           next if (dependent = __send__(reflection.name)).nil?
           case dependent
           when ActiveRecord::Base, Array
