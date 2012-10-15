@@ -101,7 +101,7 @@ ActiveRecord
 ------------
 
 Basic support for dumping and loading ActiveRecord objects is included. The
-tests pass under ActiveRecord versions 2.2.3, 2.3.5, 2.3.14, 3.0.10, and 3.1.0 under
+tests pass under ActiveRecord versions 2.2.3, 2.3.5, 2.3.14, 3.0.10, 3.1.0, and 3.2.0 under
 MRI 1.8.7 as well as under MRI 1.9.2.
 
 To use customization macros in your models, require the replicate library after
