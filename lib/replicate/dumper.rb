@@ -57,7 +57,9 @@ module Replicate
       dumper = self
       object = ::Object.new
       meta = (class<<object;self;end)
-      meta.send(:define_method, :dump) { |*args| dumper.dump(*args) }
+      [:dump, :load_script].each do |method|
+        meta.send(:define_method, method) { |*args| dumper.send(method, *args) }
+      end
       object.instance_eval File.read(file), file, 0
     end
 
