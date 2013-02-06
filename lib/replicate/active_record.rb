@@ -90,6 +90,7 @@ module Replicate
           case dependent
           when ActiveRecord::Base, Array
             dumper.dump(dependent)
+            send "set_#{reflection.name}_target", nil # clear to allow GC
           else
             warn "warn: #{self.class}##{reflection.name} #{association_type} association " \
                  "unexpectedly returned a #{dependent.class}. skipping."
@@ -110,6 +111,7 @@ module Replicate
           if reflection.macro == :has_and_belongs_to_many
             dump_has_and_belongs_to_many_replicant(dumper, reflection)
           end
+          __send__(reflection.name).reset # clear to allow GC
         else
           warn "error: #{self.class}##{association} is invalid"
         end
