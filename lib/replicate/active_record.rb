@@ -35,39 +35,68 @@ module Replicate
       # version of the same object.
       def replicant_attributes
         attributes = self.attributes.dup
-        self.class.replicate_omit_attributes.each do |omit|
-          attributes.delete(omit.to_s)
-        end
-        self.class.reflect_on_all_associations(:belongs_to).each do |reflection|
-          options = reflection.options
-          if options[:polymorphic]
-            if ::ActiveRecord::VERSION::MAJOR == 3 && ::ActiveRecord::VERSION::MINOR > 0
-              reference_class = attributes[reflection.foreign_type]
-            else
-              reference_class = attributes[options[:foreign_type]]
-            end
-            next if reference_class.nil?
 
-            klass = Kernel.const_get(reference_class)
-            primary_key = klass.primary_key
-            foreign_key = "#{reflection.name}_id"
-          else
-            klass = reflection.klass
-            primary_key = (options[:primary_key] || klass.primary_key).to_s
-            foreign_key = (options[:foreign_key] || "#{reflection.name}_id").to_s
-          end
-          if primary_key == klass.primary_key
-            if id = attributes[foreign_key]
-              attributes[foreign_key] = [:id, klass.to_s, id]
-            else
-              # nil value in association reference
+        self.class.replicate_omit_attributes.each { |omit| attributes.delete(omit.to_s) }
+        self.class.reflect_on_all_associations(:belongs_to).each do |reflection|
+          if info = replicate_reflection_info(reflection)
+            if replicant_id = info[:replicant_id]
+              foreign_key = info[:foreign_key].to_s
+              attributes[foreign_key] = [:id, *replicant_id]
             end
-          else
-            # association uses non-primary-key foreign key. no special key
-            # conversion needed.
           end
         end
+
         attributes
+      end
+
+      # Retrieve information on a reflection's associated class and various
+      # keys.
+      #
+      # Returns an info hash with these keys:
+      #   :class - The class object the association points to.
+      #   :primary_key  - The string primary key column name.
+      #   :foreign_key  - The string foreign key column name.
+      #   :replicant_id - The [classname, id] tuple identifying the record.
+      #
+      # Returns nil when the reflection can not be linked to a model.
+      def replicate_reflection_info(reflection)
+        options = reflection.options
+        if options[:polymorphic]
+          reference_class =
+            if ::ActiveRecord::VERSION::MAJOR == 3 && ::ActiveRecord::VERSION::MINOR > 0
+              attributes[reflection.foreign_type]
+            else
+              attributes[options[:foreign_type]]
+            end
+          return if reference_class.nil?
+
+          klass = Kernel.const_get(reference_class)
+          primary_key = klass.primary_key
+          foreign_key = "#{reflection.name}_id"
+        else
+          klass = reflection.klass
+          primary_key = (options[:primary_key] || klass.primary_key).to_s
+          foreign_key = (options[:foreign_key] || "#{reflection.name}_id").to_s
+        end
+
+        info = {
+          :class       => klass,
+          :primary_key => primary_key,
+          :foreign_key => foreign_key
+        }
+
+        if primary_key == klass.primary_key
+          if id = attributes[foreign_key]
+            info[:replicant_id] = [klass.to_s, id]
+          else
+            # nil value in association reference
+          end
+        else
+          # association uses non-primary-key foreign key. no special key
+          # conversion needed.
+        end
+
+        info
       end
 
       # The replicant id is a two tuple containing the class and object id. This
@@ -86,7 +115,14 @@ module Replicate
       def dump_all_association_replicants(dumper, association_type)
         self.class.reflect_on_all_associations(association_type).each do |reflection|
           next if self.class.replicate_omit_attributes.include?(reflection.name)
+
+          # bail when this object has already been dumped
+          next if (info = replicate_reflection_info(reflection)) &&
+            (replicant_id = info[:replicant_id]) &&
+            dumper.dumped?(replicant_id)
+
           next if (dependent = __send__(reflection.name)).nil?
+
           case dependent
           when ActiveRecord::Base, Array
             dumper.dump(dependent)
