@@ -126,7 +126,13 @@ module Replicate
           case dependent
           when ActiveRecord::Base, Array
             dumper.dump(dependent)
-            send "set_#{reflection.name}_target", nil # clear to allow GC
+
+            # clear reference to allow GC
+            if reflection.respond_to?(:target)
+              reflection.target = nil
+            elsif respond_to?(meth = "set_#{reflection.name}_target")
+              send meth, nil
+            end
           else
             warn "warn: #{self.class}##{reflection.name} #{association_type} association " \
                  "unexpectedly returned a #{dependent.class}. skipping."
