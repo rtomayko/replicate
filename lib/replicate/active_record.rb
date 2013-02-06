@@ -128,10 +128,10 @@ module Replicate
             dumper.dump(dependent)
 
             # clear reference to allow GC
-            if reflection.respond_to?(:reset)
-              reflection.reset
-            elsif respond_to?(meth = "set_#{reflection.name}_target")
-              send meth, nil
+            if respond_to?(:association)
+              association(reflection.name).reset
+            elsif respond_to?(:association_instance_set, true)
+              association_instance_set(reflection.name, nil)
             end
           else
             warn "warn: #{self.class}##{reflection.name} #{association_type} association " \
