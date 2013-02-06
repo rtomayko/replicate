@@ -128,8 +128,8 @@ module Replicate
             dumper.dump(dependent)
 
             # clear reference to allow GC
-            if reflection.respond_to?(:target)
-              reflection.target = nil
+            if reflection.respond_to?(:reset)
+              reflection.reset
             elsif respond_to?(meth = "set_#{reflection.name}_target")
               send meth, nil
             end
