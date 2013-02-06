@@ -293,59 +293,6 @@ class ActiveRecordTest < Test::Unit::TestCase
     assert_equal rtomayko.emails.last, obj
   end
 
-  def test_dumping_associations_at_dump_time
-    objects = []
-    @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
-
-    rtomayko = User.find_by_login('rtomayko')
-    @dumper.dump rtomayko, :associations => [:emails], :omit => [:profile]
-
-    assert_equal 3, objects.size
-
-    type, id, attrs, obj = objects.shift
-    assert_equal 'User', type
-    assert_equal rtomayko.id, id
-    assert_equal 'rtomayko', attrs['login']
-    assert_equal rtomayko.created_at, attrs['created_at']
-    assert_equal rtomayko, obj
-
-    type, id, attrs, obj = objects.shift
-    assert_equal 'Email', type
-    assert_equal 'ryan@github.com', attrs['email']
-    assert_equal [:id, 'User', rtomayko.id], attrs['user_id']
-    assert_equal rtomayko.emails.first, obj
-
-    type, id, attrs, obj = objects.shift
-    assert_equal 'Email', type
-    assert_equal 'rtomayko@gmail.com', attrs['email']
-    assert_equal [:id, 'User', rtomayko.id], attrs['user_id']
-    assert_equal rtomayko.emails.last, obj
-  end
-
-  def test_dumping_many_associations_at_dump_time
-    objects = []
-    @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
-
-    users = User.all(:conditions => {:login => %w[rtomayko kneath]})
-    @dumper.dump users, :associations => [:emails], :omit => [:profile]
-
-    assert_equal 5, objects.size
-    assert_equal ['Email', 'Email', 'Email', 'User', 'User'], objects.map { |type,_,_| type }.sort
-  end
-
-  def test_omit_attributes_at_dump_time
-    objects = []
-    @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
-
-    rtomayko = User.find_by_login('rtomayko')
-    @dumper.dump rtomayko, :omit => [:created_at]
-
-    type, id, attrs, obj = objects.shift
-    assert_equal 'User', type
-    assert attrs['updated_at']
-    assert_nil attrs['created_at']
-  end
-
   def test_dumping_polymorphic_associations
     objects = []
     @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }

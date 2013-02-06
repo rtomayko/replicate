@@ -40,7 +40,7 @@ module Replicate
       value
     end
 
-    def dump_replicant(dumper, opts={})
+    def dump_replicant(dumper)
       dumper.write self.class, @id, @attributes, self
     end
 
