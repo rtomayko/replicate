@@ -20,9 +20,9 @@ module Replicate
       #
       # Returns nothing.
       def dump_replicant(dumper, opts={})
-        @opts = opts
-        @opts[:associations] ||= []
-        @opts[:omit] ||= []
+        @replicate_opts = opts
+        @replicate_opts[:associations] ||= []
+        @replicate_opts[:omit] ||= []
         dump_all_association_replicants dumper, :belongs_to
         dumper.write self.class.to_s, id, replicant_attributes, self
         dump_all_association_replicants dumper, :has_one
@@ -33,12 +33,12 @@ module Replicate
 
       # List of associations to explicitly include when dumping this object.
       def included_associations
-        (self.class.replicate_associations + @opts[:associations]).uniq
+        (self.class.replicate_associations + @replicate_opts[:associations]).uniq
       end
 
       # List of attributes and associations to omit when dumping this object.
       def omitted_attributes
-        (self.class.replicate_omit_attributes + @opts[:omit]).uniq
+        (self.class.replicate_omit_attributes + @replicate_opts[:omit]).uniq
       end
 
       # Attributes hash used to persist this object. This consists of simply
