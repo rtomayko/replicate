@@ -78,7 +78,9 @@ module Replicate
       objects.each do |object|
         next if object.nil? || dumped?(object)
         if object.respond_to?(:dump_replicant)
-          object.dump_replicant(self, opts)
+          args = [self]
+          args << opts unless object.method(:dump_replicant).arity == 1
+          object.dump_replicant(*args)
         else
           raise NoMethodError, "#{object.class} must respond to #dump_replicant"
         end
