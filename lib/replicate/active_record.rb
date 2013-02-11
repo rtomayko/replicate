@@ -19,13 +19,26 @@ module Replicate
       #          type, id, and attributes hash.
       #
       # Returns nothing.
-      def dump_replicant(dumper)
+      def dump_replicant(dumper, opts={})
+        @replicate_opts = opts
+        @replicate_opts[:associations] ||= []
+        @replicate_opts[:omit] ||= []
         dump_all_association_replicants dumper, :belongs_to
         dumper.write self.class.to_s, id, replicant_attributes, self
         dump_all_association_replicants dumper, :has_one
-        self.class.replicate_associations.each do |association|
+        included_associations.each do |association|
           dump_association_replicants dumper, association
         end
+      end
+
+      # List of associations to explicitly include when dumping this object.
+      def included_associations
+        (self.class.replicate_associations + @replicate_opts[:associations]).uniq
+      end
+
+      # List of attributes and associations to omit when dumping this object.
+      def omitted_attributes
+        (self.class.replicate_omit_attributes + @replicate_opts[:omit]).uniq
       end
 
       # Attributes hash used to persist this object. This consists of simply
@@ -36,7 +49,7 @@ module Replicate
       def replicant_attributes
         attributes = self.attributes.dup
 
-        self.class.replicate_omit_attributes.each { |omit| attributes.delete(omit.to_s) }
+        omitted_attributes.each { |omit| attributes.delete(omit.to_s) }
         self.class.reflect_on_all_associations(:belongs_to).each do |reflection|
           if info = replicate_reflection_info(reflection)
             if replicant_id = info[:replicant_id]
@@ -114,7 +127,7 @@ module Replicate
       # Returns nothing.
       def dump_all_association_replicants(dumper, association_type)
         self.class.reflect_on_all_associations(association_type).each do |reflection|
-          next if self.class.replicate_omit_attributes.include?(reflection.name)
+          next if omitted_attributes.include?(reflection.name)
 
           # bail when this object has already been dumped
           next if (info = replicate_reflection_info(reflection)) &&
@@ -328,7 +341,7 @@ module Replicate
         }
       end
 
-      def dump_replicant(dumper)
+      def dump_replicant(dumper, opts={})
         type = self.class.name
         id   = "#{@object.class.to_s}:#{@reflection.name}:#{@object.id}"
         dumper.write type, id, attributes, self

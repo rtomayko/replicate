@@ -69,11 +69,18 @@ module Replicate
     #
     # Returns nothing.
     def dump(*objects)
+      opts = if objects.last.is_a? Hash
+        objects.pop
+      else
+        {}
+      end
       objects = objects[0] if objects.size == 1 && objects[0].respond_to?(:to_ary)
       objects.each do |object|
         next if object.nil? || dumped?(object)
         if object.respond_to?(:dump_replicant)
-          object.dump_replicant(self)
+          args = [self]
+          args << opts unless object.method(:dump_replicant).arity == 1
+          object.dump_replicant(*args)
         else
           raise NoMethodError, "#{object.class} must respond to #dump_replicant"
         end
