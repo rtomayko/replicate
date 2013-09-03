@@ -83,7 +83,7 @@ module Replicate
             end
           return if reference_class.nil?
 
-          klass = Kernel.const_get(reference_class)
+          klass = reference_class.constantize
           primary_key = klass.primary_key
           foreign_key = "#{reflection.name}_id"
         else

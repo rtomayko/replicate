@@ -53,6 +53,8 @@ ActiveRecord::Schema.define do
     t.integer "notable_id"
     t.string  "notable_type"
   end
+
+  create_table "namespaced", :force => true
 end
 
 # models
@@ -85,6 +87,10 @@ end
 
 class Note < ActiveRecord::Base
   belongs_to :notable, :polymorphic => true
+end
+
+class User::Namespaced < ActiveRecord::Base
+  set_table_name "namespaced"
 end
 
 # The test case loads some fixture data once and uses transaction rollback to
@@ -391,6 +397,22 @@ class ActiveRecordTest < Test::Unit::TestCase
     assert_equal 'Note', type
     assert_equal nil, attrs['notable_type']
     assert_equal nil, attrs['notable_id']
+  end
+
+  def test_dumps_polymorphic_namespaced_associations
+    objects = []
+    @dumper.listen { |type, id, attrs, obj| objects << [type, id, attrs, obj] }
+
+    note = Note.create! :notable => User::Namespaced.create!
+    @dumper.dump note
+
+    assert_equal 2, objects.size
+
+    type, id, attrs, obj = objects.shift
+    assert_equal 'User::Namespaced', type
+
+    type, id, attrs, obj = objects.shift
+    assert_equal 'Note', type
   end
 
 
