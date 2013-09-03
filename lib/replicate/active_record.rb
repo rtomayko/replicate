@@ -51,6 +51,7 @@ module Replicate
 
         omitted_attributes.each { |omit| attributes.delete(omit.to_s) }
         self.class.reflect_on_all_associations(:belongs_to).each do |reflection|
+          next if omitted_attributes.include?(reflection.name)
           if info = replicate_reflection_info(reflection)
             if replicant_id = info[:replicant_id]
               foreign_key = info[:foreign_key].to_s
