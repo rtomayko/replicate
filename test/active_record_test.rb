@@ -90,7 +90,7 @@ class Note < ActiveRecord::Base
 end
 
 class User::Namespaced < ActiveRecord::Base
-  set_table_name "namespaced"
+  self.table_name = "namespaced"
 end
 
 # The test case loads some fixture data once and uses transaction rollback to
