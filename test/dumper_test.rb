@@ -79,4 +79,25 @@ class DumperTest < Test::Unit::TestCase
     @dumper.load_script File.expand_path('../dumpscript.rb', __FILE__)
     assert called
   end
+
+  def test_dump_scripts_can_load_additional
+    called = false
+    @dumper.listen do |type, id, attrs, obj|
+      assert !called
+      called = true
+    end
+    @dumper.load_script File.expand_path('../linked_dumpscript.rb', __FILE__)
+    assert called
+  end
+
+  def test_load_script_uses_load_path
+    called = false
+    @dumper.listen do |type, id, attrs, obj|
+      assert !called
+      called = true
+    end
+    $LOAD_PATH << File.dirname(__FILE__)
+    @dumper.load_script 'linked_dumpscript'
+    assert called
+  end
 end

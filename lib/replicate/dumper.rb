@@ -53,11 +53,14 @@ module Replicate
     # of a special object with a #dump method that forwards to this instance.
     # Dump scripts are useful when you want to dump a lot of stuff. Call the
     # dump method as many times as necessary to dump all objects.
-    def load_script(file)
+    def load_script(path)
       dumper = self
       object = ::Object.new
       meta = (class<<object;self;end)
-      meta.send(:define_method, :dump) { |*args| dumper.dump(*args) }
+      [:dump, :load_script].each do |method|
+        meta.send(:define_method, method) { |*args| dumper.send(method, *args) }
+      end
+      file = find_file(path)
       object.instance_eval File.read(file), file, 0
     end
 
@@ -123,6 +126,17 @@ module Replicate
       stats = {}
       @memo.each { |class_name, items| stats[class_name] = items.size }
       stats
+    end
+
+    protected
+    def find_file(path)
+      path = "#{path}.rb" unless path =~ /\.rb$/
+      return path if File.exists? path
+      $LOAD_PATH.each do |prefix|
+        full_path = File.expand_path(path, prefix)
+        return full_path if File.exists? full_path
+      end
+      false
     end
   end
 end
