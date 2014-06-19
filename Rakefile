@@ -8,7 +8,10 @@ ENV['GEM_HOME'] = "#{vendor_dir}/#{ruby_version}"
 
 desc "Install gem dependencies for development"
 task :setup => 'setup:latest' do
-  verbose(false) { gem_install 'sqlite3' }
+  verbose(false) do
+    gem_install 'sqlite3'
+    gem_install 'test_after_commit'
+  end
 end
 
 desc "Run tests"
