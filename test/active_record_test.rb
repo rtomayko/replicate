@@ -16,6 +16,7 @@ require 'replicate'
 dbfile = File.expand_path('../db', __FILE__)
 File.unlink dbfile if File.exist?(dbfile)
 ActiveRecord::Base.establish_connection(:adapter => "sqlite3", :database => dbfile)
+require 'test_after_commit'
 
 # load schema
 ActiveRecord::Migration.verbose = false
@@ -561,6 +562,9 @@ class ActiveRecordTest < Test::Unit::TestCase
     # note when a record is saved with callbacks
     callbacks = false
     User.class_eval { after_save { callbacks = true } }
+    User.class_eval { after_create { callbacks = true } }
+    User.class_eval { after_update { callbacks = true } }
+    User.class_eval { after_commit { callbacks = true } }
 
     # check our assumptions
     user = User.create(:login => 'defunkt')

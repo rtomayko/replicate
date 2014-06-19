@@ -306,6 +306,7 @@ module Replicate
           def instance._run_save_callbacks(*args); yield; end
           def instance._run_create_callbacks(*args); yield; end
           def instance._run_update_callbacks(*args); yield; end
+          def instance._run_commit_callbacks(*args); yield; end
         else
           # AR 2.x
           def instance.callback(*args)
