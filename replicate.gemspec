@@ -27,6 +27,7 @@ Gem::Specification.new do |s|
     test/active_record_test.rb
     test/dumper_test.rb
     test/dumpscript.rb
+    test/linked_dumpscript.rb
     test/loader_test.rb
     test/replicate_test.rb
   ]
