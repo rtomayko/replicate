@@ -299,8 +299,8 @@ module Replicate
       # they've been disabled on an object.
       def replicate_disable_callbacks(instance)
         if ::ActiveRecord::VERSION::MAJOR >= 3
-          # AR 3.1.x
-          def instance.run_callbacks(*args); yield; end
+          # AR 3.1.x, 3.2.x
+          def instance.run_callbacks(*args); yield if block_given?; end
 
           # AR 3.0.x
           def instance._run_save_callbacks(*args); yield; end
