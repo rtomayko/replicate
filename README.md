@@ -1,6 +1,8 @@
 Dump and load relational objects between Ruby environments.
 ===========================================================
 
+*This repository is archived and no longer actively maintained by @rtomayko as of 2017-11-08. Issues and PRs documenting current issues have been intentionally left open for informational purposes.*
+
 The project started at GitHub to simplify the process of getting real production
 data into development and staging environments. We use it to replicate entire
 repository data (including associated issue, pull request, commit comment, etc.
